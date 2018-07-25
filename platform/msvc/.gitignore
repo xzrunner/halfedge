@@ -1,0 +1,5 @@
+halfedge/
+projects/*
+
+!projects/halfedge.vcxproj
+!projects/halfedge.vcxproj.filters

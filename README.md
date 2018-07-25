@@ -1,0 +1,3 @@
+# halfedge
+
+Half edge struct.
