@@ -15,14 +15,16 @@ public:
 	Polyhedron(const sm::cube& aabb);
 	Polyhedron(const std::vector<std::vector<sm::vec3>>& faces);
 
-	const std::vector<FacePtr>& GetFaces() const { return m_faces; }
+	auto& GetVertices() const { return m_vertices; }
+	auto& GetFaces() const { return m_faces; }
 
 	const sm::cube& GetAABB() const { return m_aabb; }
 
 	static const float VERTEX_SCALE;
 
 private:
-	std::vector<FacePtr> m_faces;
+	std::vector<VertexPtr> m_vertices;
+	std::vector<FacePtr>   m_faces;
 
 	sm::cube m_aabb;
 

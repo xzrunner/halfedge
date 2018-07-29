@@ -134,6 +134,10 @@ Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& faces_pos)
 			map2vert.insert({ scaled, std::make_shared<he::Vertex>(scaled) });
 		}
 	}
+	m_vertices.reserve(map2vert.size());
+	for (auto& itr : map2vert) {
+		m_vertices.push_back(itr.second);
+	}
 
 	m_faces.reserve(faces_pos.size());
 	for (auto& face_pos : faces_pos)
