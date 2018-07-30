@@ -26,4 +26,12 @@ void Face::GetBorder(std::vector<sm::vec3>& border) const
 	}
 }
 
+void Face::GetPlane(sm::Plane& plane) const
+{
+	auto& v0 = start_edge->origin->position;
+	auto& v1 = start_edge->next->origin->position;
+	auto& v2 = start_edge->next->next->origin->position;
+	plane.Build(v0, v1, v2);
+}
+
 }

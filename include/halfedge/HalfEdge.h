@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SM_Vector.h>
+#include <SM_Plane.h>
 
 #include <memory>
 #include <vector>
@@ -51,6 +52,8 @@ struct Face
 	EdgePtr start_edge = nullptr;
 
 	void GetBorder(std::vector<sm::vec3>& border) const;
+
+	void GetPlane(sm::Plane& plane) const;
 
 }; // Face
 
