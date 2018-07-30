@@ -210,4 +210,12 @@ Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& faces_pos)
 	//}
 }
 
+void Polyhedron::UpdateAABB()
+{
+	m_aabb.MakeEmpty();
+	for (auto& vert : m_vertices) {
+		m_aabb.Combine(vert->position);
+	}
+}
+
 }

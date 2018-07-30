@@ -19,6 +19,7 @@ public:
 	auto& GetFaces() const { return m_faces; }
 
 	const sm::cube& GetAABB() const { return m_aabb; }
+	void UpdateAABB();
 
 	static const float VERTEX_SCALE;
 
