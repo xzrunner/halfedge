@@ -3,7 +3,6 @@
 #include <SM_Vector.h>
 #include <SM_Plane.h>
 
-#include <memory>
 #include <vector>
 
 namespace he
@@ -13,10 +12,6 @@ struct Vertex;
 struct Edge;
 struct Face;
 
-using VertexPtr = std::shared_ptr<Vertex>;
-using EdgePtr   = std::shared_ptr<Edge>;
-using FacePtr   = std::shared_ptr<Face>;
-
 struct Vertex
 {
 	Vertex(sm::vec3 position)
@@ -25,36 +20,53 @@ struct Vertex
 
 	sm::vec3 position;
 
-	std::vector<EdgePtr> output;
-	std::vector<EdgePtr> input;
+    // one of the half-edges emantating from the vertex
+    Edge* edge = nullptr;
+
+    // double linked list
+    Vertex* linked_prev = nullptr;
+    Vertex* linked_next = nullptr;
 
 }; // Vertex
 
 struct Edge
 {
-	Edge(VertexPtr origin, FacePtr face)
-		: origin(origin), face(face) {}
+	Edge(Vertex* vert, Face* face)
+		: vert(vert), face(face)
+    {
+    }
 
-	VertexPtr origin = nullptr;
-	FacePtr   face = nullptr;
+    Edge* Connect(Edge* next);
 
-	EdgePtr twin = nullptr;
+    Vertex* vert = nullptr;     // vertex at the end of the half-edge
+    Face*   face = nullptr;     // face the half-edge borders
 
-	EdgePtr prev = nullptr;
-	EdgePtr next = nullptr;
+    Edge*   twin = nullptr;     // oppositely oriented adjacent half-edge
+
+    Edge*   next = nullptr;     // next half-edge around the face
+
+    // double linked list
+    Edge* linked_prev = nullptr;
+    Edge* linked_next = nullptr;
 
 }; // Edge
 
-const EdgePtr& ConnectEdge(const EdgePtr& prev, const EdgePtr& next);
-
 struct Face
 {
-	EdgePtr start_edge = nullptr;
+    // one of the half-edges bordering the face
+	Edge* edge = nullptr;
 
-	void GetBorder(std::vector<sm::vec3>& border) const;
-
-	void GetPlane(sm::Plane& plane) const;
+    // double linked list
+    Face* linked_prev = nullptr;
+    Face* linked_next = nullptr;
 
 }; // Face
+
+// edge
+void edge_make_pair(Edge* e0, Edge* e1);
+
+// face
+void face_to_vertices(const Face& face, std::vector<sm::vec3>& border);
+void face_to_plane(const Face& face, sm::Plane& plane);
 
 }

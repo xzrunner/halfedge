@@ -3,34 +3,39 @@
 namespace he
 {
 
-const EdgePtr& ConnectEdge(const EdgePtr& prev, const EdgePtr& next)
+Edge* Edge::Connect(Edge* next)
 {
-	prev->next = next;
-	next->prev = prev;
-	next->origin->output.push_back(next);
-	next->origin->input.push_back(prev);
-	return next;
+    assert(!this->next);
+    this->next = next;
+    return next;
 }
 
-void Face::GetBorder(std::vector<sm::vec3>& border) const
+void edge_make_pair(Edge* e0, Edge* e1)
 {
-	auto ptr = start_edge;
+    assert(!e0->twin && !e1->twin);
+    e0->twin = e1;
+    e1->twin = e0;
+}
+
+void face_to_vertices(const Face& face, std::vector<sm::vec3>& border)
+{
+	auto ptr = face.edge;
 	while (true)
 	{
-		border.push_back(ptr->origin->position);
+		border.push_back(ptr->vert->position);
 
 		ptr = ptr->next;
-		if (ptr == start_edge) {
+		if (ptr == face.edge) {
 			break;
 		}
 	}
 }
 
-void Face::GetPlane(sm::Plane& plane) const
+void face_to_plane(const Face& face, sm::Plane& plane)
 {
-	auto& v0 = start_edge->origin->position;
-	auto& v1 = start_edge->next->origin->position;
-	auto& v2 = start_edge->next->next->origin->position;
+	auto& v0 = face.edge->vert->position;
+	auto& v1 = face.edge->next->vert->position;
+	auto& v2 = face.edge->next->next->vert->position;
 	plane.Build(v0, v1, v2);
 }
 

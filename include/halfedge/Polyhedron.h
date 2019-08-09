@@ -1,10 +1,12 @@
 #pragma once
 
+#include "halfedge/DoublyLinkedList.h"
 #include "halfedge/HalfEdge.h"
 
 #include <SM_Cube.h>
 
 #include <vector>
+#include <memory>
 
 namespace he
 {
@@ -16,7 +18,8 @@ public:
 	Polyhedron(const std::vector<std::vector<sm::vec3>>& faces);
 
 	auto& GetVertices() const { return m_vertices; }
-	auto& GetFaces() const { return m_faces; }
+    auto& GetEdges() const    { return m_edges; }
+	auto& GetFaces() const    { return m_faces; }
 
 	const sm::cube& GetAABB() const { return m_aabb; }
 	void UpdateAABB();
@@ -24,8 +27,9 @@ public:
 	static const float VERTEX_SCALE;
 
 private:
-	std::vector<VertexPtr> m_vertices;
-	std::vector<FacePtr>   m_faces;
+    DoublyLinkedList<Vertex> m_vertices;
+    DoublyLinkedList<Edge>   m_edges;
+    DoublyLinkedList<Face>   m_faces;
 
 	sm::cube m_aabb;
 
