@@ -8,8 +8,6 @@
 namespace he
 {
 
-const float Polyhedron::VERTEX_SCALE = 0.01f;
-
 Polyhedron::Polyhedron(const sm::cube& aabb)
 	: m_aabb(aabb)
 {
@@ -133,9 +131,8 @@ Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& faces_pos)
 	std::map<sm::vec3, Vertex*, sm::Vector3Cmp> map2vert;
 	for (auto& face : faces_pos) {
 		for (auto& pos : face) {
-			auto scaled = pos * VERTEX_SCALE;
-			m_aabb.Combine(scaled);
-			map2vert.insert({ scaled, new Vertex(scaled) });
+			m_aabb.Combine(pos);
+			map2vert.insert({ pos, new Vertex(pos) });
 		}
 	}
 	for (auto& itr : map2vert) {
@@ -170,8 +167,7 @@ Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& faces_pos)
             auto& pos = face_pos[i];
             auto& last_pos = face_pos[(i - 1 + n) % n];
 
-			auto scaled = pos * VERTEX_SCALE;
-			auto itr = map2vert.find(scaled);
+			auto itr = map2vert.find(pos);
 			assert(itr != map2vert.end());
 			auto vert = itr->second;
 			assert(vert);

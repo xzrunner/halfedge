@@ -24,8 +24,6 @@ public:
 	const sm::cube& GetAABB() const { return m_aabb; }
 	void UpdateAABB();
 
-	static const float VERTEX_SCALE;
-
 private:
     DoublyLinkedList<Vertex> m_vertices;
     DoublyLinkedList<Edge>   m_edges;
