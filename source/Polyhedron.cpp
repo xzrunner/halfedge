@@ -197,8 +197,9 @@ Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& faces_pos)
         }
 
         auto itr_twin = map2edge.find({ itr.first.second, itr.first.first });
-        assert(itr_twin != map2edge.end());
-        edge_make_pair(itr.second, itr_twin->second);
+        if (itr_twin != map2edge.end()) {
+            edge_make_pair(itr.second, itr_twin->second);
+        }
     }
 }
 
