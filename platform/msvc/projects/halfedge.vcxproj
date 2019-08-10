@@ -14,6 +14,7 @@
     <ClInclude Include="..\..\..\include\halfedge\DoublyLinkedList.h" />
     <ClInclude Include="..\..\..\include\halfedge\HalfEdge.h" />
     <ClInclude Include="..\..\..\include\halfedge\Polyhedron.h" />
+    <ClInclude Include="..\..\..\include\halfedge\typedef.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\HalfEdge.cpp" />
