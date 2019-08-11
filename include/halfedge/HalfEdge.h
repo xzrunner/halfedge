@@ -38,7 +38,7 @@ struct Edge
 
     Edge* Connect(Edge* next);
 
-    Vertex* vert = nullptr;     // vertex at the end of the half-edge
+    Vertex* vert = nullptr;     // vertex at the begin of the half-edge
     Face*   face = nullptr;     // face the half-edge borders
 
     Edge*   twin = nullptr;     // oppositely oriented adjacent half-edge

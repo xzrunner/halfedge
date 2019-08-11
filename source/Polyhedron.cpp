@@ -1,5 +1,4 @@
 #include "halfedge/Polyhedron.h"
-#include "halfedge/HalfEdge.h"
 
 #include <SM_Vector.h>
 
@@ -34,10 +33,10 @@ Polyhedron::Polyhedron(const sm::cube& aabb)
 
 	// Bottom face
 	auto bottom = new Face();
-	auto bottom_left  = new Edge(left_bottom_back,   bottom);
-	auto bottom_back  = new Edge(right_bottom_back,  bottom);
-	auto bottom_right = new Edge(right_bottom_front, bottom);
-	auto bottom_front = new Edge(left_bottom_front,  bottom);
+	auto bottom_left  = new Edge(left_bottom_front,  bottom);
+	auto bottom_back  = new Edge(left_bottom_back,   bottom);
+	auto bottom_right = new Edge(right_bottom_back,  bottom);
+	auto bottom_front = new Edge(right_bottom_front, bottom);
     bottom_left->Connect(bottom_back)->Connect(bottom_right)
                ->Connect(bottom_front)->Connect(bottom_left);
 	bottom->edge = bottom_left;
@@ -47,67 +46,67 @@ Polyhedron::Polyhedron(const sm::cube& aabb)
 
 	// Left face
 	auto left = new Face();
-	auto left_bottom = new Edge(left_bottom_front, left);
-	auto left_back   = new Edge(left_bottom_back,  left);
-	auto left_top    = new Edge(left_top_back,     left);
-	auto left_front  = new Edge(left_top_front,    left);
-    left_bottom->Connect(left_back)->Connect(left_top)
-               ->Connect(left_front)->Connect(left_bottom);
+	auto left_bottom = new Edge(left_bottom_back,  left);
+    auto left_front  = new Edge(left_bottom_front, left);
+    auto left_top    = new Edge(left_top_front,    left);
+	auto left_back   = new Edge(left_top_back,     left);
+    left_bottom->Connect(left_front)->Connect(left_top)
+               ->Connect(left_back)->Connect(left_bottom);
 	left->edge = left_bottom;
-    m_edges.Append(left_bottom).Append(left_back)
-           .Append(left_top).Append(left_front);
+    m_edges.Append(left_bottom).Append(left_front)
+           .Append(left_top).Append(left_back);
     m_faces.Append(left);
 
 	// Front face
 	auto front = new Face();
-	auto front_left   = new Edge(left_bottom_front,  front);
-	auto front_top    = new Edge(left_top_front,     front);
-	auto front_right  = new Edge(right_top_front,    front);
-	auto front_bottom = new Edge(right_bottom_front, front);
-    front_left->Connect(front_top)->Connect(front_right)
-              ->Connect(front_bottom)->Connect(front_left);
+	auto front_left   = new Edge(left_top_front,     front);
+    auto front_bottom = new Edge(left_bottom_front,  front);
+    auto front_right  = new Edge(right_bottom_front, front);
+	auto front_top    = new Edge(right_top_front,    front);
+    front_left->Connect(front_bottom)->Connect(front_right)
+              ->Connect(front_top)->Connect(front_left);
 	front->edge = front_left;
-    m_edges.Append(front_left).Append(front_top)
-           .Append(front_right).Append(front_bottom);
+    m_edges.Append(front_left).Append(front_bottom)
+           .Append(front_right).Append(front_top);
     m_faces.Append(front);
 
 	// Back face
 	auto back = new Face();
-	auto back_bottom = new Edge(left_bottom_back,  back);
-	auto back_right  = new Edge(right_bottom_back, back);
-	auto back_top    = new Edge(right_top_back,    back);
-	auto back_left   = new Edge(left_top_back,     back);
-    back_bottom->Connect(back_right)->Connect(back_top)
-               ->Connect(back_left)->Connect(back_bottom);
+	auto back_bottom = new Edge(right_bottom_back, back);
+    auto back_left   = new Edge(left_bottom_back,  back);
+    auto back_top    = new Edge(left_top_back,     back);
+	auto back_right  = new Edge(right_top_back,    back);
+    back_bottom->Connect(back_left)->Connect(back_top)
+               ->Connect(back_right)->Connect(back_bottom);
 	back->edge = back_bottom;
-    m_edges.Append(back_bottom).Append(back_right)
-           .Append(back_top).Append(back_left);
+    m_edges.Append(back_bottom).Append(back_left)
+           .Append(back_top).Append(back_right);
     m_faces.Append(back);
 
 	// Top face
 	auto top = new Face();
-	auto top_left  = new Edge(left_top_front,  top);
-	auto top_back  = new Edge(left_top_back,   top);
-	auto top_right = new Edge(right_top_back,  top);
-	auto top_front = new Edge(right_top_front, top);
-    top_left->Connect(top_back)->Connect(top_right)
-            ->Connect(top_front)->Connect(top_left);
+	auto top_left  = new Edge(left_top_back,   top);
+    auto top_front = new Edge(left_top_front,  top);
+    auto top_right = new Edge(right_top_front, top);
+	auto top_back  = new Edge(right_top_back,  top);
+    top_left->Connect(top_front)->Connect(top_right)
+            ->Connect(top_back)->Connect(top_left);
 	top->edge = top_left;
-    m_edges.Append(top_left).Append(top_back)
-           .Append(top_right).Append(top_front);
+    m_edges.Append(top_left).Append(top_front)
+           .Append(top_right).Append(top_back);
     m_faces.Append(top);
 
 	// Right face
 	auto right = new Face();
-	auto right_front  = new Edge(right_bottom_front, right);
-	auto right_top    = new Edge(right_top_front, right);
-	auto right_back   = new Edge(right_top_back, right);
-	auto right_bottom = new Edge(right_bottom_back, right);
-    right_front->Connect(right_top)->Connect(right_back)
-               ->Connect(right_bottom)->Connect(right_front);
+	auto right_front  = new Edge(right_top_front,    right);
+    auto right_bottom = new Edge(right_bottom_front, right);
+    auto right_back   = new Edge(right_bottom_back,  right);
+	auto right_top    = new Edge(right_top_back,     right);
+    right_front->Connect(right_bottom)->Connect(right_back)
+               ->Connect(right_top)->Connect(right_front);
 	right->edge = right_front;
-    m_edges.Append(right_front).Append(right_top)
-           .Append(right_back).Append(right_bottom);
+    m_edges.Append(right_front).Append(right_bottom)
+           .Append(right_back).Append(right_top);
     m_faces.Append(right);
 
     edge_make_pair(top_left,  left_top);
@@ -164,10 +163,10 @@ Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& faces_pos)
 
 		for (int i = 0, n = face_pos.size(); i < n; ++i)
 		{
-            auto& pos = face_pos[i];
-            auto& last_pos = face_pos[(i - 1 + n) % n];
+            auto& curr_pos = face_pos[i];
+            auto& next_pos = face_pos[(i + 1) % n];
 
-			auto itr = map2vert.find(pos);
+			auto itr = map2vert.find(curr_pos);
 			assert(itr != map2vert.end());
 			auto vert = itr->second;
 			assert(vert);
@@ -180,7 +179,7 @@ Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& faces_pos)
 			}
 			last = edge;
 
-            map2edge.insert({ { last_pos, pos }, edge });
+            map2edge.insert({ { curr_pos, next_pos }, edge });
 		}
 		last->Connect(first);
 
