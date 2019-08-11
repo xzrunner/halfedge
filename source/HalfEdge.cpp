@@ -3,10 +3,11 @@
 namespace he
 {
 
-Edge* Edge::Connect(Edge* next)
+Edge* Edge::Connect(Edge* next_edge)
 {
-    assert(!this->next);
-    this->next = next;
+    assert(!next && !next_edge->prev);
+    next_edge->prev = this;
+    next = next_edge;
     return next;
 }
 

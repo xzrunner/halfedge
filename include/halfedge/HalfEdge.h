@@ -43,6 +43,7 @@ struct Edge
 
     Edge*   twin = nullptr;     // oppositely oriented adjacent half-edge
 
+    Edge*   prev = nullptr;     // prev half-edge around the face
     Edge*   next = nullptr;     // next half-edge around the face
 
     // double linked list
