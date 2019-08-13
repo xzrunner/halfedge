@@ -20,16 +20,12 @@ void edge_make_pair(Edge* e0, Edge* e1)
 
 void face_to_vertices(const Face& face, std::vector<sm::vec3>& border)
 {
-	auto ptr = face.edge;
-	while (true)
-	{
-		border.push_back(ptr->vert->position);
-
-		ptr = ptr->next;
-		if (ptr == face.edge) {
-			break;
-		}
-	}
+    auto first_edge = face.edge;
+    auto curr_edge = first_edge;
+    do {
+        border.push_back(curr_edge->vert->position);
+        curr_edge = curr_edge->next;
+    } while (curr_edge != first_edge);
 }
 
 void face_to_plane(const Face& face, sm::Plane& plane)
@@ -45,6 +41,7 @@ void face_to_plane(const Face& face, sm::Plane& plane)
         if (angle > std::numeric_limits<float>::epsilon() &&
             angle < SM_PI - std::numeric_limits<float>::epsilon()) {
             plane.Build(v0, v1, v2);
+            plane.Flip();
             return;
         }
 
@@ -57,7 +54,7 @@ void face_to_plane(const Face& face, sm::Plane& plane)
 void bind_edge_face(Face* face, Edge* edge)
 {
     face->edge = edge;
-    
+
     auto curr_edge = edge;
     do {
         curr_edge->face = face;

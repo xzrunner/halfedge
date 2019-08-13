@@ -18,7 +18,7 @@ public:
     Polyhedron() {}
     Polyhedron(const Polyhedron& poly);
 	Polyhedron(const sm::cube& aabb);
-	Polyhedron(const std::vector<std::vector<sm::vec3>>& polygons);
+	Polyhedron(const std::vector<std::vector<sm::vec3>>& polygons);     // right-hand
     Polyhedron& operator = (const Polyhedron& poly);
 
 	auto& GetVertices() const { return m_vertices; }

@@ -473,7 +473,7 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
             m_edges.Append(new_edge);
         }
         for (int i = 0, n = new_edges.size(); i < n; ++i) {
-            new_edges[(i + 1) % n]->Connect(new_edges[i]);
+            new_edges[i]->Connect(new_edges[(i + 1) % n]);
         }
 
         new_face->edge = new_edges[0];
