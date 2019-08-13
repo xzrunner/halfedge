@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 namespace he
 {
 
@@ -11,13 +13,14 @@ public:
     ~DoublyLinkedList();
 
     DoublyLinkedList& Append(T* item);
+    T* Remove(T* item);
 
     T* Head() const { return m_head; }
     size_t Size() const { return m_size; }
 
-private:
     void Clear();
 
+private:
     bool Check();
     bool CheckLinks();
     bool CheckSize();

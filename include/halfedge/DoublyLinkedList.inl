@@ -39,6 +39,26 @@ DoublyLinkedList<T>::Append(T* item)
 }
 
 template <typename T>
+T* DoublyLinkedList<T>::Remove(T* item)
+{
+    assert(m_size > 0);
+
+    if (m_head == item) {
+        m_head = item->linked_next;
+    }
+
+    auto next_item = item->linked_next;
+
+    item->linked_next->linked_prev = item->linked_prev;
+    item->linked_prev->linked_next = item->linked_next;
+    --m_size;
+
+    assert(Check());
+
+    return next_item;
+}
+
+template <typename T>
 void DoublyLinkedList<T>::Clear()
 {
     if (!m_head) {

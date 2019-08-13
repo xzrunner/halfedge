@@ -70,4 +70,6 @@ void edge_make_pair(Edge* e0, Edge* e1);
 void face_to_vertices(const Face& face, std::vector<sm::vec3>& border);
 void face_to_plane(const Face& face, sm::Plane& plane);
 
+void bind_edge_face(Face* face, Edge* edge);
+
 }

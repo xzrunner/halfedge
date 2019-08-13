@@ -7,9 +7,67 @@
 namespace he
 {
 
-Polyhedron::Polyhedron(const sm::cube& aabb)
-	: m_aabb(aabb)
+Polyhedron::Polyhedron(const Polyhedron& poly)
 {
+    this->operator = (poly);
+}
+
+Polyhedron::Polyhedron(const sm::cube& aabb)
+{
+    BuildFromCube(aabb);
+}
+
+Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& polygons)
+{
+    BuildFromPolygons(polygons);
+}
+
+Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
+{
+    std::vector<std::vector<sm::vec3>> polygons;
+    auto& faces = poly.GetFaces();
+    polygons.reserve(faces.Size());
+    auto face = faces.Head();
+    do {
+        std::vector<sm::vec3> polygon;
+        face_to_vertices(*face, polygon);
+        polygons.push_back(polygon);
+
+        face = face->linked_next;
+    } while (face != faces.Head());
+
+    BuildFromPolygons(polygons);
+
+    return *this;
+}
+
+void Polyhedron::UpdateAABB()
+{
+	m_aabb.MakeEmpty();
+
+    auto head = m_vertices.Head();
+    auto v = head;
+    do {
+        m_aabb.Combine(v->position);
+        v = v->linked_next;
+    } while (v != head);
+}
+
+void Polyhedron::Clear()
+{
+    m_vertices.Clear();
+    m_edges.Clear();
+    m_faces.Clear();
+
+    m_aabb.MakeEmpty();
+}
+
+void Polyhedron::BuildFromCube(const sm::cube& aabb)
+{
+    Clear();
+
+    m_aabb = aabb;
+
 	sm::vec3 p1(aabb.min[0], aabb.min[1], aabb.min[2]);
 	sm::vec3 p2(aabb.min[0], aabb.min[1], aabb.max[2]);
 	sm::vec3 p3(aabb.min[0], aabb.max[1], aabb.min[2]);
@@ -125,8 +183,10 @@ Polyhedron::Polyhedron(const sm::cube& aabb)
     edge_make_pair(back_right,  right_back);
 }
 
-Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& faces_pos)
+void Polyhedron::BuildFromPolygons(const std::vector<std::vector<sm::vec3>>& faces_pos)
 {
+    Clear();
+
 	std::map<sm::vec3, Vertex*, sm::Vector3Cmp> map2vert;
 	for (auto& face : faces_pos) {
 		for (auto& pos : face) {
@@ -171,6 +231,7 @@ Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& faces_pos)
 			auto vert = itr->second;
 			assert(vert);
 			auto edge = new Edge(vert, face);
+            m_edges.Append(edge);
 			if (!first) {
 				first = edge;
 			} else {
@@ -200,18 +261,6 @@ Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& faces_pos)
             edge_make_pair(itr.second, itr_twin->second);
         }
     }
-}
-
-void Polyhedron::UpdateAABB()
-{
-	m_aabb.MakeEmpty();
-
-    auto head = m_vertices.Head();
-    auto v = head;
-    do {
-        m_aabb.Combine(v->position);
-        v = v->linked_next;
-    } while (v != head);
 }
 
 }
