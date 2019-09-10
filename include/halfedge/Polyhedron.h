@@ -41,6 +41,8 @@ public:
     PolyhedronPtr Intersect(const Polyhedron& other) const;
     PolyhedronPtr Subtract(const Polyhedron& subtrahend) const;
 
+    void Fill();
+
 private:
     void Clear();
 
