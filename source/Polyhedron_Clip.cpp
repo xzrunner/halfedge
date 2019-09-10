@@ -71,7 +71,9 @@ he::Edge* FindInitialIntersectingEdge(const sm::Plane& plane, const he::DoublyLi
 
         if ((os == PointStatus::Inside && ds == PointStatus::Above) ||
             (os == PointStatus::Below  && ds == PointStatus::Above)) {
-            return curr->twin;
+            if (curr->twin) {
+                return curr->twin;
+            }
         }
         if ((os == PointStatus::Above  && ds == PointStatus::Inside) ||
             (os == PointStatus::Above  && ds == PointStatus::Below)) {
@@ -130,13 +132,16 @@ he::Edge* SplitEdgeByPlane(he::Edge* edge, const sm::Plane& plane,
     edge->Connect(new_edge)->Connect(edge_next);
 
     auto twin_edge = edge->twin;
-    auto new_twin_edge = new he::Edge(new_vert, twin_edge->face);
-    edges.Append(new_twin_edge);
-    auto twin_edge_next = twin_edge->next;
-    twin_edge->Connect(new_twin_edge)->Connect(twin_edge_next);
+    if (twin_edge)
+    {
+        auto new_twin_edge = new he::Edge(new_vert, twin_edge->face);
+        edges.Append(new_twin_edge);
+        auto twin_edge_next = twin_edge->next;
+        twin_edge->Connect(new_twin_edge)->Connect(twin_edge_next);
 
-    edge_make_pair(new_edge, twin_edge);
-    edge_make_pair(new_twin_edge, edge);
+        edge_make_pair(new_edge, twin_edge);
+        edge_make_pair(new_twin_edge, edge);
+    }
 
     return new_edge;
 }
@@ -248,6 +253,9 @@ he::Edge* FindNextIntersectingEdge(he::Edge* search_from, const sm::Plane& plane
             return curr_edge;
         }
 
+        if (!curr_edge->twin) {
+            break;
+        }
         curr_edge = curr_edge->twin->next;
     } while (curr_edge != stop_edge);
 
@@ -265,13 +273,12 @@ std::vector<he::Edge*> IntersectWithPlane(const sm::Plane& plane,
     assert(init_edge);
 
     auto curr_edge = IntersectWithPlane(init_edge, plane, vertices, edges, faces);
+    seam.push_back(curr_edge);
     auto stop_vert = curr_edge->vert;
     do {
         curr_edge = FindNextIntersectingEdge(curr_edge, plane);
         if (!curr_edge) {
-            // no seam
-            assert(0);
-            return std::vector<he::Edge*>();
+            break;
         }
 
         curr_edge = IntersectWithPlane(curr_edge, plane, vertices, edges, faces);
