@@ -17,26 +17,58 @@ Polyhedron::Polyhedron(const sm::cube& aabb)
     BuildFromCube(aabb);
 }
 
-Polyhedron::Polyhedron(const std::vector<std::vector<sm::vec3>>& polygons)
+Polyhedron::Polyhedron(const std::vector<sm::vec3>& vertices, 
+                       const std::vector<std::vector<size_t>>& faces)
 {
-    BuildFromPolygons(polygons);
+    BuildFromPolygons(vertices, faces);
 }
 
 Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
 {
-    std::vector<std::vector<sm::vec3>> polygons;
-    auto& faces = poly.GetFaces();
-    polygons.reserve(faces.Size());
-    auto face = faces.Head();
+    std::vector<sm::vec3> vertices;
+    vertices.reserve(poly.m_vertices.Size());
+
+    std::map<Vertex*, size_t> vert2idx;
+
+    auto v_head = poly.m_vertices.Head();
+    if (!v_head) {
+        Clear();
+        return *this;
+    }
+    auto v = v_head;
+    size_t idx = 0;
     do {
-        std::vector<sm::vec3> polygon;
-        face_to_vertices(*face, polygon);
-        polygons.push_back(polygon);
+        vertices.push_back(v->position);
+        vert2idx.insert({ v, idx++ });
+        v = v->linked_next;
+    } while (v != v_head);
 
-        face = face->linked_next;
-    } while (face != faces.Head());
+    std::vector<std::vector<size_t>> faces;
+    faces.reserve(poly.m_faces.Size());
+    auto f_head = poly.m_faces.Head();
+    if (!f_head) {
+        Clear();
+        return *this;
+    }
+    auto f = f_head;
+    do {
+        std::vector<size_t> face;
+        
+        auto e_head = f->edge;
+        auto e = e_head;
+        do {
+            auto itr = vert2idx.find(e->vert);
+            assert(itr != vert2idx.end());
+            face.push_back(itr->second);
+            e = e->next;
+        } while (e != e_head);
 
-    BuildFromPolygons(polygons);
+        faces.push_back(face);
+
+        f = f->linked_next;
+    } while (f != f_head);
+
+    BuildFromPolygons(vertices, faces);
 
     return *this;
 }
@@ -183,52 +215,51 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     edge_make_pair(back_right,  right_back);
 }
 
-void Polyhedron::BuildFromPolygons(const std::vector<std::vector<sm::vec3>>& faces_pos)
+void Polyhedron::BuildFromPolygons(const std::vector<sm::vec3>& vertices,
+                                   const std::vector<std::vector<size_t>>& faces)
 {
     Clear();
 
-	std::map<sm::vec3, Vertex*, sm::Vector3Cmp> map2vert;
-	for (auto& face : faces_pos) {
-		for (auto& pos : face) {
-			m_aabb.Combine(pos);
-			map2vert.insert({ pos, new Vertex(pos) });
-		}
-	}
-	for (auto& itr : map2vert) {
-		m_vertices.Append(itr.second);
-	}
+    std::vector<Vertex*> v_array;
+    v_array.reserve(vertices.size());
+    for (auto& pos : vertices) 
+    {
+        m_aabb.Combine(pos);
+        auto v = new Vertex(pos);
+        v_array.push_back(v);
+        m_vertices.Append(v);
+    }
 
     class EdgeCmp
     {
     public:
         bool operator () (
-            const std::pair<sm::vec3, sm::vec3>& e0,
-            const std::pair<sm::vec3, sm::vec3>& e1) const {
+            const std::pair<size_t, size_t>& e0,
+            const std::pair<size_t, size_t>& e1) const {
             return e0.first < e1.first ||
                   (e0.first == e1.first && e0.second < e1.second);
         }
     }; // EdgeCmp
-    std::map<std::pair<sm::vec3, sm::vec3>, Edge*, EdgeCmp> map2edge;
-	for (auto& face_pos : faces_pos)
+    std::map<std::pair<size_t, size_t>, Edge*, EdgeCmp> map2edge;
+	for (auto& face_idx : faces)
 	{
-        if (face_pos.size() < 2) {
+        if (face_idx.size() < 2) {
             continue;
         }
 
 		auto face = new Face();
 
-		assert(face_pos.size() > 2);
+		assert(face_idx.size() > 2);
 		Edge* first = nullptr;
 		Edge* last  = nullptr;
 
-		for (int i = 0, n = face_pos.size(); i < n; ++i)
+		for (int i = 0, n = face_idx.size(); i < n; ++i)
 		{
-            auto& curr_pos = face_pos[i];
-            auto& next_pos = face_pos[(i + 1) % n];
+            auto& curr_pos = face_idx[i];
+            auto& next_pos = face_idx[(i + 1) % n];
 
-			auto itr = map2vert.find(curr_pos);
-			assert(itr != map2vert.end());
-			auto vert = itr->second;
+            assert(curr_pos >= 0 && curr_pos < v_array.size());
+            auto vert = v_array[curr_pos];
 			assert(vert);
 			auto edge = new Edge(vert, face);
             m_edges.Append(edge);
