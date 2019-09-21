@@ -14,9 +14,12 @@ struct Face;
 
 struct Vertex
 {
-	Vertex(sm::vec3 position)
-		: position(position)
+	Vertex(sm::vec3 position, int id)
+		: id(id)
+        , position(position)
 	{}
+
+    int id = -1;
 
 	sm::vec3 position;
 
@@ -31,12 +34,16 @@ struct Vertex
 
 struct Edge
 {
-	Edge(Vertex* vert, Face* face)
-		: vert(vert), face(face)
+	Edge(Vertex* vert, Face* face, int id)
+		: id(id)
+        , vert(vert)
+        , face(face)
     {
     }
 
     Edge* Connect(Edge* next);
+
+    int id = -1;
 
     Vertex* vert = nullptr;     // vertex at the begin of the half-edge
     Face*   face = nullptr;     // face the half-edge borders
@@ -54,6 +61,13 @@ struct Edge
 
 struct Face
 {
+    Face(int id)
+        : id(id)
+    {
+    }
+
+    int id = -1;
+
     // one of the half-edges bordering the face
 	Edge* edge = nullptr;
 

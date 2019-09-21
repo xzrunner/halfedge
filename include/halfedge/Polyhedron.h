@@ -18,7 +18,7 @@ public:
     Polyhedron() {}
     Polyhedron(const Polyhedron& poly);
 	Polyhedron(const sm::cube& aabb);
-    Polyhedron(const std::vector<sm::vec3>& vertices, 
+    Polyhedron(const std::vector<sm::vec3>& vertices,
         const std::vector<std::vector<size_t>>& faces); // right-hand
     Polyhedron& operator = (const Polyhedron& poly);
 
@@ -55,6 +55,10 @@ private:
     DoublyLinkedList<Vertex> m_vertices;
     DoublyLinkedList<Edge>   m_edges;
     DoublyLinkedList<Face>   m_faces;
+
+    int m_next_vert_id = 0;
+    int m_next_edge_id = 0;
+    int m_next_face_id = 0;
 
 	sm::cube m_aabb;
 

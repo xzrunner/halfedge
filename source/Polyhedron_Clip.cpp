@@ -108,7 +108,8 @@ he::Edge* FindInitialIntersectingEdge(const sm::Plane& plane, const he::DoublyLi
 
 he::Edge* SplitEdgeByPlane(he::Edge* edge, const sm::Plane& plane,
                            he::DoublyLinkedList<he::Vertex>& vertices,
-                           he::DoublyLinkedList<he::Edge>& edges)
+                           he::DoublyLinkedList<he::Edge>& edges,
+                           int& next_vert_id, int& next_edge_id)
 {
     auto& s_pos = edge->vert->position;
     auto& e_pos = edge->next->vert->position;
@@ -124,9 +125,9 @@ he::Edge* SplitEdgeByPlane(he::Edge* edge, const sm::Plane& plane,
     assert(dot > 0.0f && dot < 1.0f);
 
     auto pos = s_pos + (e_pos - s_pos) * dot;
-    auto new_vert = new he::Vertex(pos);
+    auto new_vert = new he::Vertex(pos, next_vert_id++);
     vertices.Append(new_vert);
-    auto new_edge = new he::Edge(new_vert, edge->face);
+    auto new_edge = new he::Edge(new_vert, edge->face, edge->id);
     edges.Append(new_edge);
     auto edge_next = edge->next;
     edge->Connect(new_edge)->Connect(edge_next);
@@ -134,7 +135,7 @@ he::Edge* SplitEdgeByPlane(he::Edge* edge, const sm::Plane& plane,
     auto twin_edge = edge->twin;
     if (twin_edge)
     {
-        auto new_twin_edge = new he::Edge(new_vert, twin_edge->face);
+        auto new_twin_edge = new he::Edge(new_vert, twin_edge->face, twin_edge->id);
         edges.Append(new_twin_edge);
         auto twin_edge_next = twin_edge->next;
         twin_edge->Connect(new_twin_edge)->Connect(twin_edge_next);
@@ -149,13 +150,14 @@ he::Edge* SplitEdgeByPlane(he::Edge* edge, const sm::Plane& plane,
 void IntersectWithPlane(he::Edge* old_boundary_first,
                         he::Edge* new_boundary_first,
                         he::DoublyLinkedList<he::Edge>& edges,
-                        he::DoublyLinkedList<he::Face>& faces)
+                        he::DoublyLinkedList<he::Face>& faces,
+                        int& next_edge_id, int& next_face_id)
 {
     he::Edge* new_boundary_last = old_boundary_first->prev;
 
     auto old_face = old_boundary_first->face;
-    he::Edge* old_boundary_splitter = new he::Edge(new_boundary_first->vert, old_face);
-    he::Edge* new_boundary_splitter = new he::Edge(old_boundary_first->vert, old_face);
+    he::Edge* old_boundary_splitter = new he::Edge(new_boundary_first->vert, old_face, next_edge_id++);
+    he::Edge* new_boundary_splitter = new he::Edge(old_boundary_first->vert, old_face, next_edge_id++);
     he::edge_make_pair(old_boundary_splitter, new_boundary_splitter);
 
     auto new_boundary_first_prev = new_boundary_first->prev;
@@ -166,7 +168,7 @@ void IntersectWithPlane(he::Edge* old_boundary_first,
 
     he::bind_edge_face(old_face, old_boundary_first);
 
-    auto new_face = new he::Face();
+    auto new_face = new he::Face(new_boundary_first->face->id);
     he::bind_edge_face(new_face, new_boundary_first);
 
     edges.Append(old_boundary_splitter);
@@ -177,7 +179,8 @@ void IntersectWithPlane(he::Edge* old_boundary_first,
 he::Edge* IntersectWithPlane(he::Edge* first_boundary_edge, const sm::Plane& plane,
                              he::DoublyLinkedList<he::Vertex>& vertices,
                              he::DoublyLinkedList<he::Edge>& edges,
-                             he::DoublyLinkedList<he::Face>& faces)
+                             he::DoublyLinkedList<he::Face>& faces,
+                             int& next_vert_id, int& next_edge_id, int& next_face_id)
 {
     he::Edge* seam_ori = nullptr;
     he::Edge* seam_dst = nullptr;
@@ -201,7 +204,7 @@ he::Edge* IntersectWithPlane(he::Edge* first_boundary_edge, const sm::Plane& pla
         else if ((os == PointStatus::Below && ds == PointStatus::Above) ||
                  (os == PointStatus::Above && ds == PointStatus::Below))
         {
-            SplitEdgeByPlane(curr_boundary_edge, plane, vertices, edges);
+            SplitEdgeByPlane(curr_boundary_edge, plane, vertices, edges, next_vert_id, next_edge_id);
             curr_boundary_edge = curr_boundary_edge->next;
 
             auto new_vertex = curr_boundary_edge->vert;
@@ -227,9 +230,9 @@ he::Edge* IntersectWithPlane(he::Edge* first_boundary_edge, const sm::Plane& pla
         auto os = CalcPointStatus(plane, seam_ori->next->vert->position);
         assert(os != PointStatus::Inside);
         if (os == PointStatus::Below) {
-            IntersectWithPlane(seam_ori, seam_dst, edges, faces);
+            IntersectWithPlane(seam_ori, seam_dst, edges, faces, next_edge_id, next_face_id);
         } else {
-            IntersectWithPlane(seam_dst, seam_ori, edges, faces);
+            IntersectWithPlane(seam_dst, seam_ori, edges, faces, next_edge_id, next_face_id);
         }
     }
 
@@ -265,14 +268,15 @@ he::Edge* FindNextIntersectingEdge(he::Edge* search_from, const sm::Plane& plane
 std::vector<he::Edge*> IntersectWithPlane(const sm::Plane& plane,
                                           he::DoublyLinkedList<he::Vertex>& vertices,
                                           he::DoublyLinkedList<he::Edge>& edges,
-                                          he::DoublyLinkedList<he::Face>& faces)
+                                          he::DoublyLinkedList<he::Face>& faces,
+                                          int& next_vert_id, int& next_edge_id, int& next_face_id)
 {
     std::vector<he::Edge*> seam;
 
     auto init_edge = FindInitialIntersectingEdge(plane, edges);
     assert(init_edge);
 
-    auto curr_edge = IntersectWithPlane(init_edge, plane, vertices, edges, faces);
+    auto curr_edge = IntersectWithPlane(init_edge, plane, vertices, edges, faces, next_vert_id, next_edge_id, next_face_id);
     auto stop_vert = curr_edge->vert;
     auto first = curr_edge;
     do {
@@ -281,7 +285,7 @@ std::vector<he::Edge*> IntersectWithPlane(const sm::Plane& plane,
             break;
         }
 
-        curr_edge = IntersectWithPlane(curr_edge, plane, vertices, edges, faces);
+        curr_edge = IntersectWithPlane(curr_edge, plane, vertices, edges, faces, next_vert_id, next_edge_id, next_face_id);
         seam.push_back(curr_edge);
     } while (curr_edge->vert != stop_vert);
 
@@ -448,7 +452,8 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
         return false;
     }
 
-    auto seam = IntersectWithPlane(plane, m_vertices, m_edges, m_faces);
+    auto seam = IntersectWithPlane(plane, m_vertices, m_edges, m_faces,
+        m_next_vert_id, m_next_edge_id, m_next_face_id);
     if (seam.empty()) {
         return false;
     }
@@ -471,14 +476,14 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
     {
         assert(!seam.front()->twin);
 
-        auto new_face = new Face();
+        auto new_face = new Face(m_next_face_id++);
         m_faces.Append(new_face);
 
         std::vector<Edge*> new_edges;
         new_edges.reserve(seam.size());
         for (int i = 0, n = seam.size(); i < n; ++i)
         {
-            Edge* new_edge = new Edge(seam[(i + 1) % n]->vert, new_face);
+            Edge* new_edge = new Edge(seam[(i + 1) % n]->vert, new_face, m_next_edge_id++);
             edge_make_pair(new_edge, seam[i]);
             new_edges.push_back(new_edge);
             m_edges.Append(new_edge);

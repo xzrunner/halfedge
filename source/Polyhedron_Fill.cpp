@@ -13,9 +13,9 @@ void Polyhedron::Fill()
     auto first = m_edges.Head();
     auto curr = first;
     do {
-        if (!curr->twin) 
+        if (!curr->twin)
         {
-            auto edge = new Edge(curr->next->vert, nullptr);
+            auto edge = new Edge(curr->next->vert, nullptr, m_next_edge_id++);
             new_edges.insert({ edge->vert, edge });
             edge_make_pair(edge, curr);
             m_edges.Append(edge);
@@ -31,9 +31,9 @@ void Polyhedron::Fill()
             continue;
         }
 
-        auto face = new Face();
+        auto face = new Face(m_next_face_id++);
         face->edge = edge;
-    
+
         Vertex* first = edge->vert;
         do {
             edge->face = face;
