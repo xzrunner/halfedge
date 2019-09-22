@@ -39,6 +39,7 @@ struct Edge
         , vert(vert)
         , face(face)
     {
+        vert->edge = this;
     }
 
     Edge* Connect(Edge* next);
