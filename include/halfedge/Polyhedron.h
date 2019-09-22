@@ -42,7 +42,9 @@ public:
     PolyhedronPtr Intersect(const Polyhedron& other) const;
     PolyhedronPtr Subtract(const Polyhedron& subtrahend) const;
 
+    // edit
     void Fill();
+    void Fuse(float distance = 0.001f);
 
 private:
     void Clear();

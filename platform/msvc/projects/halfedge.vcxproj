@@ -21,7 +21,7 @@
     <ClCompile Include="..\..\..\source\Polyhedron.cpp" />
     <ClCompile Include="..\..\..\source\Polyhedron_Clip.cpp" />
     <ClCompile Include="..\..\..\source\Polyhedron_Boolean.cpp" />
-    <ClCompile Include="..\..\..\source\Polyhedron_Fill.cpp" />
+    <ClCompile Include="..\..\..\source\Polyhedron_Edit.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\include\halfedge\DoublyLinkedList.inl" />
