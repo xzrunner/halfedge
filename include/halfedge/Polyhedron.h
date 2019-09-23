@@ -18,8 +18,8 @@ public:
     Polyhedron() {}
     Polyhedron(const Polyhedron& poly);
 	Polyhedron(const sm::cube& aabb);
-    Polyhedron(const std::vector<sm::vec3>& vertices,
-        const std::vector<std::vector<size_t>>& faces); // right-hand
+    Polyhedron(const std::vector<std::pair<int, sm::vec3>>& vertices,
+        const std::vector< std::pair<int, std::vector<size_t>>>& faces); // right-hand
     Polyhedron& operator = (const Polyhedron& poly);
 
 	auto& GetVertices() const { return m_vertices; }
@@ -50,8 +50,8 @@ private:
     void Clear();
 
     void BuildFromCube(const sm::cube& aabb);
-    void BuildFromPolygons(const std::vector<sm::vec3>& vertices,
-        const std::vector<std::vector<size_t>>& faces);
+    void BuildFromPolygons(const std::vector<std::pair<int, sm::vec3>>& vertices,
+        const std::vector< std::pair<int, std::vector<size_t>>>& faces);
 
 private:
     DoublyLinkedList<Vertex> m_vertices;

@@ -17,15 +17,15 @@ Polyhedron::Polyhedron(const sm::cube& aabb)
     BuildFromCube(aabb);
 }
 
-Polyhedron::Polyhedron(const std::vector<sm::vec3>& vertices,
-                       const std::vector<std::vector<size_t>>& faces)
+Polyhedron::Polyhedron(const std::vector<std::pair<int, sm::vec3>>& vertices,
+                       const std::vector< std::pair<int, std::vector<size_t>>>& faces)
 {
     BuildFromPolygons(vertices, faces);
 }
 
 Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
 {
-    std::vector<sm::vec3> vertices;
+    std::vector<std::pair<int, sm::vec3>> vertices;
     vertices.reserve(poly.m_vertices.Size());
 
     std::map<Vertex*, size_t> vert2idx;
@@ -38,12 +38,12 @@ Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
     auto v = v_head;
     size_t idx = 0;
     do {
-        vertices.push_back(v->position);
+        vertices.push_back({ v->id, v->position });
         vert2idx.insert({ v, idx++ });
         v = v->linked_next;
     } while (v != v_head);
 
-    std::vector<std::vector<size_t>> faces;
+    std::vector< std::pair<int, std::vector<size_t>>> faces;
     faces.reserve(poly.m_faces.Size());
     auto f_head = poly.m_faces.Head();
     if (!f_head) {
@@ -63,7 +63,7 @@ Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
             e = e->next;
         } while (e != e_head);
 
-        faces.push_back(face);
+        faces.push_back({ f->id, face });
 
         f = f->linked_next;
     } while (f != f_head);
@@ -215,17 +215,23 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     edge_make_pair(back_right,  right_back);
 }
 
-void Polyhedron::BuildFromPolygons(const std::vector<sm::vec3>& vertices,
-                                   const std::vector<std::vector<size_t>>& faces)
+void Polyhedron::BuildFromPolygons(const std::vector<std::pair<int, sm::vec3>>& vertices,
+                                   const std::vector< std::pair<int, std::vector<size_t>>>& faces)
 {
     Clear();
 
     std::vector<Vertex*> v_array;
     v_array.reserve(vertices.size());
-    for (auto& pos : vertices)
+    for (auto& vert : vertices)
     {
-        m_aabb.Combine(pos);
-        auto v = new Vertex(pos, m_next_vert_id++);
+        m_aabb.Combine(vert.second);
+        int id = vert.first;
+        if (id < 0) {
+            id = m_next_vert_id++;
+        } else if (id > m_next_vert_id) {
+            m_next_vert_id = id + 1;
+        }
+        auto v = new Vertex(vert.second, id);
         v_array.push_back(v);
         m_vertices.Append(v);
     }
@@ -241,22 +247,28 @@ void Polyhedron::BuildFromPolygons(const std::vector<sm::vec3>& vertices,
         }
     }; // EdgeCmp
     std::map<std::pair<size_t, size_t>, Edge*, EdgeCmp> map2edge;
-	for (auto& face_idx : faces)
+	for (auto& src_face : faces)
 	{
-        if (face_idx.size() < 2) {
+        if (src_face.second.size() < 2) {
             continue;
         }
 
-		auto face = new Face(m_next_face_id++);
+        int id = src_face.first;
+        if (id < 0) {
+            id = m_next_face_id++;
+        } else if (id > m_next_face_id) {
+            m_next_face_id = id + 1;
+        }
+		auto face = new Face(id);
 
-		assert(face_idx.size() > 2);
+		assert(src_face.second.size() > 2);
 		Edge* first = nullptr;
 		Edge* last  = nullptr;
 
-		for (int i = 0, n = face_idx.size(); i < n; ++i)
+		for (int i = 0, n = src_face.second.size(); i < n; ++i)
 		{
-            auto& curr_pos = face_idx[i];
-            auto& next_pos = face_idx[(i + 1) % n];
+            auto& curr_pos = src_face.second[i];
+            auto& next_pos = src_face.second[(i + 1) % n];
 
             assert(curr_pos >= 0 && curr_pos < v_array.size());
             auto vert = v_array[curr_pos];
