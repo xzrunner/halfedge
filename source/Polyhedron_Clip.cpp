@@ -109,7 +109,7 @@ he::Edge* FindInitialIntersectingEdge(const sm::Plane& plane, const he::DoublyLi
 he::Edge* SplitEdgeByPlane(he::Edge* edge, const sm::Plane& plane,
                            he::DoublyLinkedList<he::Vertex>& vertices,
                            he::DoublyLinkedList<he::Edge>& edges,
-                           int& next_vert_id, int& next_edge_id)
+                           size_t& next_vert_id, size_t& next_edge_id)
 {
     auto& s_pos = edge->vert->position;
     auto& e_pos = edge->next->vert->position;
@@ -127,16 +127,22 @@ he::Edge* SplitEdgeByPlane(he::Edge* edge, const sm::Plane& plane,
     auto pos = s_pos + (e_pos - s_pos) * dot;
     auto new_vert = new he::Vertex(pos, next_vert_id++);
     vertices.Append(new_vert);
-    auto new_edge = new he::Edge(new_vert, edge->face, edge->id);
+    auto new_edge = new he::Edge(new_vert, edge->face, edge->ids.ID());
+    new_edge->ids.Append(next_edge_id++);
     edges.Append(new_edge);
+
+    edge->ids.Append(next_edge_id++);
     auto edge_next = edge->next;
     edge->Connect(new_edge)->Connect(edge_next);
 
     auto twin_edge = edge->twin;
     if (twin_edge)
     {
-        auto new_twin_edge = new he::Edge(new_vert, twin_edge->face, twin_edge->id);
+        auto new_twin_edge = new he::Edge(new_vert, twin_edge->face, twin_edge->ids.ID());
+        new_twin_edge->ids.Append(next_edge_id++);
         edges.Append(new_twin_edge);
+
+        twin_edge->ids.Append(next_edge_id++);
         auto twin_edge_next = twin_edge->next;
         twin_edge->Connect(new_twin_edge)->Connect(twin_edge_next);
 
@@ -151,7 +157,7 @@ void IntersectWithPlane(he::Edge* old_boundary_first,
                         he::Edge* new_boundary_first,
                         he::DoublyLinkedList<he::Edge>& edges,
                         he::DoublyLinkedList<he::Face>& faces,
-                        int& next_edge_id, int& next_face_id)
+                        size_t& next_edge_id, size_t& next_face_id)
 {
     he::Edge* new_boundary_last = old_boundary_first->prev;
 
@@ -166,10 +172,12 @@ void IntersectWithPlane(he::Edge* old_boundary_first,
     new_boundary_first_prev->Connect(old_boundary_splitter);
     old_boundary_splitter->Connect(old_boundary_first);
 
-    he::bind_edge_face(old_face, old_boundary_first);
-
-    auto new_face = new he::Face(new_boundary_first->face->id);
+    auto new_face = new he::Face(new_boundary_first->face->ids.ID());
+    new_face->ids.Append(next_face_id++);
     he::bind_edge_face(new_face, new_boundary_first);
+
+    old_face->ids.Append(next_face_id++);
+    he::bind_edge_face(old_face, old_boundary_first);
 
     edges.Append(old_boundary_splitter);
     edges.Append(new_boundary_splitter);
@@ -180,7 +188,7 @@ he::Edge* IntersectWithPlane(he::Edge* first_boundary_edge, const sm::Plane& pla
                              he::DoublyLinkedList<he::Vertex>& vertices,
                              he::DoublyLinkedList<he::Edge>& edges,
                              he::DoublyLinkedList<he::Face>& faces,
-                             int& next_vert_id, int& next_edge_id, int& next_face_id)
+                             size_t& next_vert_id, size_t& next_edge_id, size_t& next_face_id)
 {
     he::Edge* seam_ori = nullptr;
     he::Edge* seam_dst = nullptr;
@@ -269,7 +277,7 @@ std::vector<he::Edge*> IntersectWithPlane(const sm::Plane& plane,
                                           he::DoublyLinkedList<he::Vertex>& vertices,
                                           he::DoublyLinkedList<he::Edge>& edges,
                                           he::DoublyLinkedList<he::Face>& faces,
-                                          int& next_vert_id, int& next_edge_id, int& next_face_id)
+                                          size_t& next_vert_id, size_t& next_edge_id, size_t& next_face_id)
 {
     std::vector<he::Edge*> seam;
 

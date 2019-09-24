@@ -14,6 +14,7 @@
     <ClInclude Include="..\..\..\include\halfedge\DoublyLinkedList.h" />
     <ClInclude Include="..\..\..\include\halfedge\HalfEdge.h" />
     <ClInclude Include="..\..\..\include\halfedge\Polyhedron.h" />
+    <ClInclude Include="..\..\..\include\halfedge\TopoID.h" />
     <ClInclude Include="..\..\..\include\halfedge\typedef.h" />
   </ItemGroup>
   <ItemGroup>
@@ -22,6 +23,7 @@
     <ClCompile Include="..\..\..\source\Polyhedron_Clip.cpp" />
     <ClCompile Include="..\..\..\source\Polyhedron_Boolean.cpp" />
     <ClCompile Include="..\..\..\source\Polyhedron_Edit.cpp" />
+    <ClCompile Include="..\..\..\source\TopoID.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\include\halfedge\DoublyLinkedList.inl" />
@@ -69,7 +71,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\sm\src\sm;..\..\..\..\cu\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\sm\src\sm;..\..\..\..\cu\src;..\..\..\..\external\boost\include;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -83,7 +85,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\sm\src\sm;..\..\..\..\cu\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\sm\src\sm;..\..\..\..\cu\src;..\..\..\..\external\boost\include;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>

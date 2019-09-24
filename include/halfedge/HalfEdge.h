@@ -1,9 +1,9 @@
 #pragma once
 
+#include "halfedge/TopoID.h"
+
 #include <SM_Vector.h>
 #include <SM_Plane.h>
-
-#include <vector>
 
 namespace he
 {
@@ -14,12 +14,13 @@ struct Face;
 
 struct Vertex
 {
-	Vertex(sm::vec3 position, int id)
-		: id(id)
+	Vertex(sm::vec3 position, const TopoID& ids)
+		: ids(ids)
         , position(position)
-	{}
+	{
+    }
 
-    int id = -1;
+    TopoID ids;
 
 	sm::vec3 position;
 
@@ -34,8 +35,8 @@ struct Vertex
 
 struct Edge
 {
-	Edge(Vertex* vert, Face* face, int id)
-		: id(id)
+	Edge(Vertex* vert, Face* face, const TopoID& ids)
+		: ids(ids)
         , vert(vert)
         , face(face)
     {
@@ -44,7 +45,7 @@ struct Edge
 
     Edge* Connect(Edge* next);
 
-    int id = -1;
+    TopoID ids;
 
     Vertex* vert = nullptr;     // vertex at the begin of the half-edge
     Face*   face = nullptr;     // face the half-edge borders
@@ -62,12 +63,12 @@ struct Edge
 
 struct Face
 {
-    Face(int id)
-        : id(id)
+    Face(const TopoID& ids)
+        : ids(ids)
     {
     }
 
-    int id = -1;
+    TopoID ids;
 
     // one of the half-edges bordering the face
 	Edge* edge = nullptr;
