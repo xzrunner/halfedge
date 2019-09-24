@@ -7,6 +7,10 @@
 namespace he
 {
 
+size_t Polyhedron::m_next_vert_id = 0;
+size_t Polyhedron::m_next_edge_id = 0;
+size_t Polyhedron::m_next_face_id = 0;
+
 Polyhedron::Polyhedron(const Polyhedron& poly)
 {
     this->operator = (poly);
@@ -70,6 +74,8 @@ Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
 
     BuildFromPolygons(vertices, faces);
 
+    OffsetTopoID(m_next_vert_id, m_next_edge_id, m_next_face_id);
+
     return *this;
 }
 
@@ -83,6 +89,49 @@ void Polyhedron::UpdateAABB()
         m_aabb.Combine(v->position);
         v = v->linked_next;
     } while (v != head);
+}
+
+void Polyhedron::OffsetTopoID(size_t v_off, size_t e_off, size_t f_off)
+{
+    m_next_vert_id += v_off;
+    m_next_edge_id += e_off;
+    m_next_face_id += f_off;
+
+    auto first_v = m_vertices.Head();
+    auto curr_v = first_v;
+    do {
+        curr_v->ids.Offset(v_off);
+        for (auto& id : curr_v->ids.Path()) {
+            if (id >= m_next_vert_id) {
+                m_next_vert_id = id + 1;
+            }
+        }
+        curr_v = curr_v->linked_next;
+    } while (curr_v != first_v);
+
+    auto first_e = m_edges.Head();
+    auto curr_e = first_e;
+    do {
+        curr_e->ids.Offset(e_off);
+        for (auto& id : curr_e->ids.Path()) {
+            if (id >= m_next_edge_id) {
+                m_next_edge_id = id + 1;
+            }
+        }
+        curr_e = curr_e->linked_next;
+    } while (curr_e != first_e);
+
+    auto first_f = m_faces.Head();
+    auto curr_f = first_f;
+    do {
+        curr_f->ids.Offset(f_off);
+        for (auto& id : curr_f->ids.Path()) {
+            if (id >= m_next_face_id) {
+                m_next_face_id = id + 1;
+            }
+        }
+        curr_f = curr_f->linked_next;
+    } while (curr_f != first_f);
 }
 
 void Polyhedron::Clear()

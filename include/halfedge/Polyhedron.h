@@ -48,6 +48,8 @@ public:
     void Fuse(float distance = 0.001f);
 
 private:
+    void OffsetTopoID(size_t v_off, size_t e_off, size_t f_off);
+
     void Clear();
 
     void BuildFromCube(const sm::cube& aabb);
@@ -59,9 +61,9 @@ private:
     DoublyLinkedList<Edge>   m_edges;
     DoublyLinkedList<Face>   m_faces;
 
-    size_t m_next_vert_id = 0;
-    size_t m_next_edge_id = 0;
-    size_t m_next_face_id = 0;
+    static size_t m_next_vert_id;
+    static size_t m_next_edge_id;
+    static size_t m_next_face_id;
 
 	sm::cube m_aabb;
 
