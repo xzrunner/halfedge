@@ -136,6 +136,10 @@ void Polyhedron::OffsetTopoID(size_t v_off, size_t e_off, size_t f_off)
 
 void Polyhedron::Clear()
 {
+    m_next_vert_id = 0;
+    m_next_edge_id = 0;
+    m_next_face_id = 0;
+
     m_vertices.Clear();
     m_edges.Clear();
     m_faces.Clear();
