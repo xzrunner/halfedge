@@ -43,8 +43,19 @@ T* DoublyLinkedList<T>::Remove(T* item)
 {
     assert(m_size > 0);
 
-    if (m_head == item) {
-        m_head = item->linked_next;
+    if (m_head == item)
+    {
+        if (m_size == 1)
+        {
+            m_size = 0;
+            m_head = nullptr;
+            Check();
+            return nullptr;
+        }
+        else
+        {
+            m_head = item->linked_next;
+        }
     }
 
     auto next_item = item->linked_next;
