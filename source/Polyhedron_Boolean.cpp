@@ -62,6 +62,9 @@ PolyhedronPtr Polyhedron::Intersect(const Polyhedron& other) const
         sm::Plane plane;
         face_to_plane(*curr_face, plane);
         ret->Clip(plane, KeepType::KeepBelow, true);
+        if (ret->m_faces.Size() == 0) {
+            return ret;
+        }
 
         curr_face = curr_face->linked_next;
     } while (curr_face != first_face);
