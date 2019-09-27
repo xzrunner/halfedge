@@ -22,6 +22,11 @@ public:
 
     auto& Path() const { return m_path; }
 
+    void MakeInvalid() { m_path = { 0xffffffff }; }
+    bool IsValid() const {
+        return !(m_path.size() == 1 && m_path[0] == 0xffffffff);
+    }
+
 private:
     void UpdateUID();
 

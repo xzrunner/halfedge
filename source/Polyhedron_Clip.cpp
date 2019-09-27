@@ -1,6 +1,7 @@
 #include "halfedge/Polyhedron.h"
 
 #include <set>
+#include <map>
 
 namespace
 {
@@ -315,130 +316,232 @@ bool HasMultipleLoops(const std::vector<he::Edge*>& seam)
     return false;
 }
 
+void OnVertexInvalid(he::DoublyLinkedList<he::Vertex>& vertices,
+    he::DoublyLinkedList<he::Edge>& edges, he::DoublyLinkedList<he::Face>& faces);
+
+void OnEdgeInvalid(he::DoublyLinkedList<he::Vertex>& vertices,
+                   he::DoublyLinkedList<he::Edge>& edges,
+                   he::DoublyLinkedList<he::Face>& faces)
+{
+    bool edge_dirty = false;
+
+    auto curr_face = faces.Head();
+    auto first_face = curr_face;
+    do {
+        if (curr_face->ids.IsValid())
+        {
+            auto curr_edge = curr_face->edge;
+            auto first_edge = curr_edge;
+            do {
+                if (!curr_edge->ids.IsValid()) {
+                    curr_face->ids.MakeInvalid();
+                    break;
+                }
+                curr_edge = curr_edge->next;
+            } while (curr_edge != first_edge);
+
+            if (!curr_face->ids.IsValid())
+            {
+                auto curr_edge = curr_face->edge;
+                auto first_edge = curr_edge;
+                do {
+                    if (curr_edge->ids.IsValid()) {
+                        curr_edge->ids.MakeInvalid();
+                        edge_dirty = true;
+                    }
+                    curr_edge = curr_edge->next;
+                } while (curr_edge != first_edge);
+            }
+        }
+
+        curr_face = curr_face->linked_next;
+    } while (curr_face != first_face);
+
+    if (edge_dirty) {
+        OnEdgeInvalid(vertices, edges, faces);
+    }
+}
+
+void OnVertexInvalid(he::DoublyLinkedList<he::Vertex>& vertices,
+                     he::DoublyLinkedList<he::Edge>& edges,
+                     he::DoublyLinkedList<he::Face>& faces)
+{
+    bool edge_dirty = false;
+
+    auto curr_edge = edges.Head();
+    auto first_edge = curr_edge;
+    do {
+        if (curr_edge->ids.IsValid() && !curr_edge->vert->ids.IsValid()) {
+            curr_edge->ids.MakeInvalid();
+            edge_dirty = true;
+        }
+
+        curr_edge = curr_edge->linked_next;
+    } while (curr_edge != first_edge);
+
+    if (edge_dirty) {
+        OnEdgeInvalid(vertices, edges, faces);
+    }
+}
+
+bool FixVertexInvalid(he::DoublyLinkedList<he::Vertex>& vertices,
+                      he::DoublyLinkedList<he::Edge>& edges)
+{
+    bool vert_dirty = false;
+
+    // map vertex to edges
+    std::map<he::Vertex*, std::vector<he::Edge*>> vert2edges;
+    auto curr_edge = edges.Head();
+    auto first_edge = curr_edge;
+    do {
+        auto itr = vert2edges.find(curr_edge->vert);
+        if (itr != vert2edges.end()) {
+            itr->second.push_back(curr_edge);
+        } else {
+            vert2edges.insert({ curr_edge->vert, { curr_edge } });
+        }
+
+        curr_edge = curr_edge->linked_next;
+    } while (curr_edge != first_edge);
+
+    // fix vertices
+    auto first_vert = vertices.Head();
+    auto curr_vert = first_vert;
+    do {
+        if (!curr_vert->ids.IsValid() ||
+            curr_vert->ids.IsValid() && curr_vert->edge->ids.IsValid()) {
+            curr_vert = curr_vert->linked_next;
+            continue;
+        }
+
+        auto itr = vert2edges.find(curr_vert);
+        assert(itr != vert2edges.end());
+        bool find = false;
+        for (auto& e : itr->second) {
+            if (e->ids.IsValid()) {
+                curr_vert->edge = e;
+                find = true;
+                break;
+            }
+        }
+        if (!find) {
+            curr_vert->ids.MakeInvalid();
+            vert_dirty = true;
+        }
+
+        curr_vert = curr_vert->linked_next;
+    } while (curr_vert != first_vert);
+
+    return vert_dirty;
+}
+
+void FixEdgeInvalid(he::DoublyLinkedList<he::Edge>& edges)
+{
+    auto first_edge = edges.Head();
+    auto curr_edge = first_edge;
+    do {
+        if (curr_edge->ids.IsValid())
+        {
+            assert(curr_edge->vert->ids.IsValid());
+            assert(curr_edge->face->ids.IsValid());
+            assert(curr_edge->prev->ids.IsValid());
+            assert(curr_edge->next->ids.IsValid());
+            if (curr_edge->twin && !curr_edge->twin->ids.IsValid()) {
+                curr_edge->twin = nullptr;
+            }
+        }
+
+        curr_edge = curr_edge->linked_next;
+    } while (curr_edge != first_edge);
+}
+
+void FixFaceInvalid(he::DoublyLinkedList<he::Face>& faces)
+{
+    auto first_face = faces.Head();
+    auto curr_face = first_face;
+    do {
+        if (curr_face->edge->ids.IsValid())
+        {
+            auto first_edge = curr_face->edge;
+            auto curr_edge = first_edge;
+            do {
+                if (curr_edge->ids.IsValid()) {
+                    curr_face->edge = curr_edge;
+                    break;
+                }
+
+                curr_edge = curr_edge->next;
+            } while (curr_edge != first_edge);
+
+            assert(curr_face->edge->ids.IsValid());
+        }
+
+        curr_face = curr_face->linked_next;
+    } while (curr_face != first_face);
+}
+
+template <typename T>
+void DeleteInvalid(he::DoublyLinkedList<T>& list)
+{
+    std::vector<T*> invalid;
+    auto first = list.Head();
+    auto curr = first;
+    do {
+        if (!curr->ids.IsValid()) {
+            invalid.push_back(curr);
+        }
+        curr = curr->linked_next;
+    } while (curr != first);
+
+    for (auto& i : invalid) {
+        list.Remove(i);
+    }
+    for (auto& i : invalid) {
+        delete i;
+    }
+}
+
 void DeleteByPlane(const sm::Plane& plane, bool del_above,
                    he::DoublyLinkedList<he::Vertex>& vertices,
                    he::DoublyLinkedList<he::Edge>& edges,
                    he::DoublyLinkedList<he::Face>& faces)
 {
-    // vertices set
-    std::set<he::Vertex*> del_vertices;
+    bool vert_dirty = false;
+
     auto curr_vert = vertices.Head();
     auto first_vert = curr_vert;
     do {
         auto st = CalcPointStatus(plane, curr_vert->position);
         if ((st == PointStatus::Above && del_above) ||
             (st == PointStatus::Below && !del_above)) {
-            del_vertices.insert(curr_vert);
+            curr_vert->ids.MakeInvalid();
+            vert_dirty = true;
         }
 
         curr_vert = curr_vert->linked_next;
     } while (curr_vert != first_vert);
 
-    if (del_vertices.empty()) {
+    if (!vert_dirty) {
         return;
     }
 
-    // del vertices
-    curr_vert = vertices.Head();
-    first_vert = curr_vert;
-    for (auto& v : del_vertices) {
-        vertices.Remove(v);
-    }
-
-    // del faces
-    auto curr_face = faces.Head();
-    auto first_face = curr_face;
-    std::set<he::Face*> del_faces;
-    std::set<he::Edge*> del_edges;
     do {
-        auto first_edge = curr_face->edge;
-        auto curr_edge = first_edge;
-        do {
-            auto itr = del_vertices.find(curr_edge->vert);
-            if (itr != del_vertices.end())
-            {
-                auto first_edge = curr_face->edge;
-                auto curr_edge = first_edge;
-                do {
-                    del_edges.insert(curr_edge);
-                    curr_edge = curr_edge->next;
-                } while (curr_edge != first_edge);
+        OnVertexInvalid(vertices, edges, faces);
+    } while (FixVertexInvalid(vertices, edges));
+    FixEdgeInvalid(edges);
+    FixFaceInvalid(faces);
 
-                del_faces.insert(curr_face);
-                break;
-            }
-            curr_edge = curr_edge->next;
-        } while (curr_edge != first_edge);
-        curr_face = curr_face->linked_next;
-    } while (curr_face != first_face);
-    for (auto& f : del_faces) {
-        faces.Remove(f);
-    }
-
-    // del edges
-    auto curr_edge = edges.Head();
-    auto first_edge = curr_edge;
-    do {
-        auto itr_s = del_vertices.find(curr_edge->vert);
-        auto itr_e = del_vertices.find(curr_edge->next->vert);
-        if (itr_s != del_vertices.end() || itr_e != del_vertices.end()) {
-            del_edges.insert(curr_edge);
-        }
-        curr_edge = curr_edge->linked_next;
-    } while (curr_edge != first_edge);
-    for (auto& e : del_edges) {
-        edges.Remove(e);
-    }
-
-    // fix vertices
-    first_vert = vertices.Head();
-    curr_vert = first_vert;
-    do {
-        auto itr = del_edges.find(curr_vert->edge);
-        while (itr != del_edges.end()) {
-            curr_vert->edge = curr_vert->edge->twin->next;
-            itr = del_edges.find(curr_vert->edge);
-        }
-        curr_vert = curr_vert->linked_next;
-    } while (curr_vert != first_vert);
-
-    // fix edges
-    first_edge = edges.Head();
-    curr_edge = first_edge;
-    do {
-        assert(del_vertices.find(curr_edge->vert) == del_vertices.end());
-        assert(del_faces.find(curr_edge->face) == del_faces.end());
-        assert(del_edges.find(curr_edge->prev) == del_edges.end());
-        assert(del_edges.find(curr_edge->next) == del_edges.end());
-        if (del_edges.find(curr_edge->twin) != del_edges.end()) {
-            curr_edge->twin = nullptr;
-        }
-        curr_edge = curr_edge->linked_next;
-    } while (curr_edge != first_edge);
-
-    // fix faces
-    first_face = faces.Head();
-    curr_face = first_face;
-    do {
-        auto itr = del_edges.find(curr_face->edge);
-        assert(itr == del_edges.end());
-        curr_face = curr_face->linked_next;
-    } while (curr_face != first_face);
-
-    // delete
-    for (auto& v : del_vertices) {
-        delete v;
-    }
-    for (auto& e : del_edges) {
-        delete e;
-    }
-    for (auto& f : del_faces) {
-        delete f;
-    }
+    DeleteInvalid(vertices);
+    DeleteInvalid(edges);
+    DeleteInvalid(faces);
 }
 
 sm::cube CalcAABB(const he::DoublyLinkedList<he::Vertex>& vertices)
 {
+    if (vertices.Size() == 0) {
+        return sm::cube();
+    }
+
     sm::cube aabb;
     auto first_vertex = vertices.Head();
     auto curr_vertex = first_vertex;
@@ -470,19 +573,17 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
         return true;
     }
 
-    if (seam_face && keep == KeepType::KeepBelow) {
+    if (seam_face && keep == KeepType::KeepBelow)
+    {
         for (auto& s : seam) {
             s = s->twin;
         }
+        std::reverse(seam.begin(), seam.end());
     }
-
-    DeleteByPlane(plane, keep == KeepType::KeepBelow, m_vertices, m_edges, m_faces);
-
-    m_aabb = CalcAABB(m_vertices);
 
     if (seam_face)
     {
-        assert(!seam.front()->twin);
+//        assert(!seam.front()->twin);
 
         auto new_face = new Face(m_next_face_id++);
         m_faces.Append(new_face);
@@ -496,12 +597,25 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
             new_edges.push_back(new_edge);
             m_edges.Append(new_edge);
         }
+
+        for (auto& e : seam) {
+            assert(e->next->vert == e->twin->vert);
+        }
+
         for (int i = 0, n = new_edges.size(); i < n; ++i) {
-            new_edges[i]->Connect(new_edges[(i + 1) % n]);
+            new_edges[i]->Connect(new_edges[(i - 1 + n) % n]);
+        }
+
+        for (auto& e : seam) {
+            assert(e->next->vert == e->twin->vert);
         }
 
         new_face->edge = new_edges[0];
     }
+
+    DeleteByPlane(plane, keep == KeepType::KeepBelow, m_vertices, m_edges, m_faces);
+
+    m_aabb = CalcAABB(m_vertices);
 
     return true;
 }
