@@ -286,7 +286,7 @@ std::vector<he::Edge*> IntersectWithPlane(const sm::Plane& plane,
     assert(init_edge);
 
     auto curr_edge = IntersectWithPlane(init_edge, plane, vertices, edges, faces, next_vert_id, next_edge_id, next_face_id);
-    auto stop_vert = curr_edge->vert;
+    auto stop_vert = curr_edge->next->vert;
     auto first = curr_edge;
     do {
         curr_edge = FindNextIntersectingEdge(curr_edge, plane);
@@ -296,7 +296,7 @@ std::vector<he::Edge*> IntersectWithPlane(const sm::Plane& plane,
 
         curr_edge = IntersectWithPlane(curr_edge, plane, vertices, edges, faces, next_vert_id, next_edge_id, next_face_id);
         seam.push_back(curr_edge);
-    } while (curr_edge->vert != stop_vert);
+    } while (curr_edge->next->vert != stop_vert);
 
     if (seam.empty()) {
         seam.push_back(first);
