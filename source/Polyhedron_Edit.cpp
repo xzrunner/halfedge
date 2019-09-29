@@ -4,6 +4,31 @@
 
 #include <map>
 
+namespace
+{
+
+void BuildMapVert2Edges(const he::Polyhedron& src, std::map<he::Vertex*, std::vector<he::Edge*>>& dst)
+{
+    auto vert_first = src.GetVertices().Head();
+    auto vert_curr = vert_first;
+    do {
+        auto ret = dst.insert({ vert_curr, std::vector<he::Edge*>() });
+        assert(ret.second);
+        vert_curr = vert_curr->linked_next;
+    } while (vert_curr != vert_first);
+
+    auto edge_first = src.GetEdges().Head();
+    auto edge_curr = edge_first;
+    do {
+        auto itr = dst.find(edge_curr->vert);
+        assert(itr != dst.end());
+        itr->second.push_back(edge_curr);
+        edge_curr = edge_curr->linked_next;
+    } while (edge_curr != edge_first);
+}
+
+}
+
 namespace he
 {
 
@@ -55,43 +80,89 @@ void Polyhedron::Fill()
 
 void Polyhedron::Fuse(float distance)
 {
-    auto v0_first = m_vertices.Head();
-    auto v0_curr = v0_first;
-    do {
-        auto v1_curr = v0_curr->linked_next;
-        do {
-            // find
-            auto d = sm::dis_pos3_to_pos3(
-                v0_curr->position, v1_curr->position
-            );
-            if (d < distance)
-            {
-                // change edges
-                auto first_edge = v1_curr->edge;
-                auto curr_edge = first_edge;
-                do {
-                    curr_edge->vert = v0_curr;
-                    if (!curr_edge->twin) {
-                        break;
-                    }
-                    curr_edge = curr_edge->twin->next;
-                } while (curr_edge != first_edge);
+    std::map<Vertex*, std::vector<Edge*>> vert2edges;
+    BuildMapVert2Edges(*this, vert2edges);
 
-                curr_edge = first_edge;
-                do {
-                    curr_edge->vert = v0_curr;
-                    curr_edge = curr_edge->prev->twin;
-                } while (curr_edge && curr_edge != first_edge);
+    for (auto itr0 = vert2edges.begin(); itr0 != vert2edges.end(); ++itr0)
+    {
+        if (!itr0->first->ids.IsValid()) {
+            continue;
+        }
 
-                // rm vertex
-                m_vertices.Remove(v1_curr);
+        auto itr1 = itr0;
+        ++itr1;
+        for (; itr1 != vert2edges.end(); ++itr1)
+        {
+            if (!itr1->first->ids.IsValid()) {
+                continue;
             }
 
-            v1_curr = v1_curr->linked_next;
-        } while (v1_curr != v0_first && v1_curr != v0_curr);
+            auto d = sm::dis_pos3_to_pos3(
+                itr0->first->position, itr1->first->position
+            );
+            if (d >= distance) {
+                continue;
+            }
 
-        v0_curr = v0_curr->linked_next;
-    } while (v0_curr != v0_first);
+            for (auto& edge : itr1->second) {
+                edge->vert = itr0->first;
+            }
+            itr1->first->ids.MakeInvalid();
+            m_vertices.Remove(itr1->first);
+        }
+    }
+
+    for (auto itr : vert2edges) {
+        if (!itr.first->ids.IsValid()) {
+            delete itr.first;
+        }
+    }
+}
+
+PolyhedronPtr Polyhedron::Fuse(const std::vector<PolyhedronPtr>& polys, float distance)
+{
+    std::vector<std::pair<TopoID, sm::vec3>> vertices;
+    std::vector<std::pair<TopoID, std::vector<size_t>>> faces;
+
+    std::map<size_t, size_t> vert_uid2pos;
+    for (auto& poly : polys)
+    {
+        auto first_vert = poly->GetVertices().Head();
+        auto curr_vert = first_vert;
+        do {
+            auto ret = vert_uid2pos.insert({ curr_vert->ids.UID(), vertices.size() });
+            assert(ret.second);
+            vertices.push_back({ curr_vert->ids, curr_vert->position });
+            curr_vert = curr_vert->linked_next;
+        } while (curr_vert != first_vert);
+    }
+
+    for (auto& poly : polys)
+    {
+        auto first_face = poly->GetFaces().Head();
+        auto curr_face = first_face;
+        do {
+            std::vector<size_t> face;
+
+            auto first_edge = curr_face->edge;
+            auto curr_edge = first_edge;
+            do {
+                auto itr = vert_uid2pos.find(curr_edge->vert->ids.UID());
+                assert(itr != vert_uid2pos.end());
+                face.push_back(itr->second);
+
+                curr_edge = curr_edge->next;
+            } while (curr_edge != first_edge);
+
+            faces.push_back({ curr_face->ids, face });
+
+            curr_face = curr_face->linked_next;
+        } while (curr_face != first_face);
+    }
+
+    auto ret = std::make_shared<Polyhedron>(vertices, faces);
+    ret->Fuse(distance);
+    return ret;
 }
 
 }

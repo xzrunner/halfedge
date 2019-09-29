@@ -46,6 +46,7 @@ public:
     // edit
     void Fill();
     void Fuse(float distance = 0.001f);
+    static PolyhedronPtr Fuse(const std::vector<PolyhedronPtr>& polys, float distance = 0.001f);
 
 private:
     void OffsetTopoID(size_t v_off, size_t e_off, size_t f_off);
