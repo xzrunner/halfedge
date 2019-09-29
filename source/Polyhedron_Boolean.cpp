@@ -3,6 +3,44 @@
 namespace
 {
 
+bool IsPolyhedronClosed(const he::Polyhedron& poly)
+{
+    auto first_edge = poly.GetEdges().Head();
+    auto curr_edge = first_edge;
+    do {
+        if (curr_edge->twin == nullptr) {
+            return false;
+        }
+
+        curr_edge = curr_edge->linked_next;
+    } while (curr_edge != first_edge);
+
+    return true;
+}
+
+std::shared_ptr<he::Polyhedron>
+DoIntersect(const he::Polyhedron& poly0, const he::Polyhedron& poly1)
+{
+    assert(IsPolyhedronClosed(poly0));
+
+    auto ret = std::make_shared<he::Polyhedron>(poly0);
+
+    auto first_face = poly1.GetFaces().Head();
+    auto curr_face = first_face;
+    do {
+        sm::Plane plane;
+        face_to_plane(*curr_face, plane);
+
+        bool succ = ret->Clip(plane, he::Polyhedron::KeepType::KeepBelow, true);
+        if (ret->GetFaces().Size() == 0) {
+            return ret;
+        }
+
+        curr_face = curr_face->linked_next;
+    } while (curr_face != first_face);
+
+    return ret;
+}
 
 void DoSubtract(std::vector<he::PolyhedronPtr>& result, const std::vector<he::PolyhedronPtr>& fragments,
                 const he::Face* curr_face, const he::Face* first_face)
@@ -55,22 +93,17 @@ PolyhedronPtr Polyhedron::Intersect(const Polyhedron& other) const
         return nullptr;
     }
 
-    auto ret = std::make_shared<Polyhedron>(other);
+    bool is_closed0 = IsPolyhedronClosed(*this);
+    bool is_closed1 = IsPolyhedronClosed(other);
+    if (!is_closed0 && !is_closed1) {
+        return nullptr;
+    }
 
-    auto first_face = m_faces.Head();
-    auto curr_face = first_face;
-    do {
-        sm::Plane plane;
-        face_to_plane(*curr_face, plane);
-        ret->Clip(plane, KeepType::KeepBelow, true);
-        if (ret->m_faces.Size() == 0) {
-            return ret;
-        }
-
-        curr_face = curr_face->linked_next;
-    } while (curr_face != first_face);
-
-    return ret;
+    if (is_closed0) {
+        return DoIntersect(*this, other);
+    } else {
+        return DoIntersect(other, *this);
+    }
 }
 
 std::vector<PolyhedronPtr> Polyhedron::Subtract(const Polyhedron& subtrahend) const
