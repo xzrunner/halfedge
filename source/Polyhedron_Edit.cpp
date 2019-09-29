@@ -18,7 +18,8 @@ void Polyhedron::Fill()
         if (!curr->twin)
         {
             auto edge = new Edge(curr->next->vert, nullptr, m_next_edge_id++);
-            new_edges.insert({ edge->vert, edge });
+            auto ret = new_edges.insert({ edge->vert, edge });
+            assert(ret.second);
             edge_make_pair(edge, curr);
             m_edges.Append(edge);
         }
