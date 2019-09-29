@@ -5,16 +5,16 @@
 namespace he
 {
 
-TopoID::TopoID(size_t id) 
+TopoID::TopoID(size_t id)
 {
     m_path.push_back(id);
 
     UpdateUID();
 }
 
-void TopoID::Append(size_t id) 
-{ 
-    m_path.push_back(id); 
+void TopoID::Append(size_t id)
+{
+    m_path.push_back(id);
 
     UpdateUID();
 }
@@ -26,6 +26,21 @@ void TopoID::Offset(size_t off)
     }
 
     UpdateUID();
+}
+
+void TopoID::Replace(size_t from, size_t to)
+{
+    bool dirty = false;
+    for (auto& id : m_path)
+    {
+        if (id == from) {
+            id = to;
+            dirty = true;
+        }
+    }
+    if (dirty) {
+        UpdateUID();
+    }
 }
 
 void TopoID::UpdateUID()

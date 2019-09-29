@@ -19,6 +19,7 @@ public:
     bool Empty() const { return m_path.empty(); }
 
     void Offset(size_t off);
+    void Replace(size_t from, size_t to);
 
     auto& Path() const { return m_path; }
 
