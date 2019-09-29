@@ -3,7 +3,8 @@
 namespace
 {
 
-void DoSubtract(std::vector<he::Polyhedron>& result, const std::vector<he::Polyhedron>& fragments,
+
+void DoSubtract(std::vector<he::PolyhedronPtr>& result, const std::vector<he::PolyhedronPtr>& fragments,
                 const he::Face* curr_face, const he::Face* first_face)
 {
     if (fragments.empty()) {
@@ -13,17 +14,17 @@ void DoSubtract(std::vector<he::Polyhedron>& result, const std::vector<he::Polyh
     sm::Plane plane;
     face_to_plane(*curr_face, plane);
 
-    std::vector<he::Polyhedron> back_frags;
+    std::vector<he::PolyhedronPtr> back_frags;
 
     for (auto& frag : fragments)
     {
-        auto frag_in_front = frag;
-        if (frag_in_front.Clip(plane, he::Polyhedron::KeepType::KeepAbove)) {
+        auto frag_in_front = std::make_shared<he::Polyhedron>(*frag);
+        if (frag_in_front->Clip(plane, he::Polyhedron::KeepType::KeepAbove, true)) {
             result.push_back(frag_in_front);
         }
 
-        auto fragment_behind = frag;
-        if (fragment_behind.Clip(plane, he::Polyhedron::KeepType::KeepBelow)) {
+        auto fragment_behind = std::make_shared<he::Polyhedron>(*frag);
+        if (fragment_behind->Clip(plane, he::Polyhedron::KeepType::KeepBelow, true)) {
             back_frags.push_back(fragment_behind);
         }
     }
@@ -72,13 +73,14 @@ PolyhedronPtr Polyhedron::Intersect(const Polyhedron& other) const
     return ret;
 }
 
-PolyhedronPtr Polyhedron::Subtract(const Polyhedron& subtrahend) const
+std::vector<PolyhedronPtr> Polyhedron::Subtract(const Polyhedron& subtrahend) const
 {
-    std::vector<Polyhedron> ret;
+    std::vector<PolyhedronPtr> ret;
     auto first_face = subtrahend.GetFaces().Head();
-    DoSubtract(ret, { *this }, first_face, first_face);
-//    return ret;
-    return nullptr;
+    DoSubtract(ret, { std::make_shared<Polyhedron>(*this) }, first_face, first_face);
+
+//    return { Fuse(ret) };
+    return ret;
 }
 
 }
