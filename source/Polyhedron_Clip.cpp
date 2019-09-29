@@ -27,7 +27,7 @@ PointStatus CalcPointStatus(const sm::Plane& plane, const sm::vec3& pos)
     }
 }
 
-bool CheckIntersects(const sm::Plane& plane, const he::DoublyLinkedList<he::Vertex>& vertices)
+PointStatus CheckIntersects(const sm::Plane& plane, const he::DoublyLinkedList<he::Vertex>& vertices)
 {
     size_t above = 0;
     size_t below = 0;
@@ -55,10 +55,12 @@ bool CheckIntersects(const sm::Plane& plane, const he::DoublyLinkedList<he::Vert
     const size_t sz = vertices.Size();
     assert(above + below + inside == sz);
 
-    if (above + inside == sz || below + inside == sz) {
-        return false;
+    if (above + inside == sz) {
+        return PointStatus::Above;
+    } else if (below + inside == sz) {
+        return PointStatus::Below;
     } else {
-        return true;
+        return PointStatus::Inside;
     }
 }
 
@@ -559,8 +561,17 @@ namespace he
 
 bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
 {
-    if (!CheckIntersects(plane, m_vertices)) {
-        return false;
+    auto st = CheckIntersects(plane, m_vertices);
+    switch (st)
+    {
+    case PointStatus::Above:
+        return keep == KeepType::KeepAll || keep == KeepType::KeepAbove;
+    case PointStatus::Below:
+        return keep == KeepType::KeepAll || keep == KeepType::KeepBelow;
+    case PointStatus::Inside:
+        break;
+    default:
+        assert(0);
     }
 
     auto seam = IntersectWithPlane(plane, m_vertices, m_edges, m_faces,
