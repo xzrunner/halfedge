@@ -7,7 +7,9 @@ namespace he
 
 Edge* Edge::Connect(Edge* next_edge)
 {
-    next_edge->prev = this;
+    if (next_edge) {
+        next_edge->prev = this;
+    }
     next = next_edge;
     return next;
 }
