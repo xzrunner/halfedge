@@ -14,6 +14,7 @@
     <ClInclude Include="..\..\..\include\halfedge\DoublyLinkedList.h" />
     <ClInclude Include="..\..\..\include\halfedge\HalfEdge.h" />
     <ClInclude Include="..\..\..\include\halfedge\Polyhedron.h" />
+    <ClInclude Include="..\..\..\include\halfedge\Polyline.h" />
     <ClInclude Include="..\..\..\include\halfedge\TopoID.h" />
     <ClInclude Include="..\..\..\include\halfedge\typedef.h" />
   </ItemGroup>
@@ -23,6 +24,7 @@
     <ClCompile Include="..\..\..\source\Polyhedron_Clip.cpp" />
     <ClCompile Include="..\..\..\source\Polyhedron_Boolean.cpp" />
     <ClCompile Include="..\..\..\source\Polyhedron_Edit.cpp" />
+    <ClCompile Include="..\..\..\source\Polyline.cpp" />
     <ClCompile Include="..\..\..\source\TopoID.cpp" />
   </ItemGroup>
   <ItemGroup>
