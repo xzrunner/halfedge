@@ -48,6 +48,9 @@ public:
     void Fuse(float distance = 0.001f);
     static PolyhedronPtr Fuse(const std::vector<PolyhedronPtr>& polys, float distance = 0.001f);
 
+    // test
+    bool IsContain(const sm::vec3& pos) const;
+
 private:
     void OffsetTopoID(size_t v_off, size_t e_off, size_t f_off);
 

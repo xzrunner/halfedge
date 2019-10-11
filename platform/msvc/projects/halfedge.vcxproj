@@ -24,6 +24,7 @@
     <ClCompile Include="..\..\..\source\Polyhedron_Clip.cpp" />
     <ClCompile Include="..\..\..\source\Polyhedron_Boolean.cpp" />
     <ClCompile Include="..\..\..\source\Polyhedron_Edit.cpp" />
+    <ClCompile Include="..\..\..\source\Polyhedron_Test.cpp" />
     <ClCompile Include="..\..\..\source\Polyline.cpp" />
     <ClCompile Include="..\..\..\source\TopoID.cpp" />
   </ItemGroup>
