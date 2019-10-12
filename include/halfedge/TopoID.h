@@ -11,6 +11,10 @@ public:
     TopoID() {}
     TopoID(size_t id);
 
+    bool operator == (const TopoID& id) const {
+        return m_path == id.m_path;
+    }
+
     void Append(size_t id);
 
     size_t ID() const { return m_path.empty() ? 0xffffffff : m_path.back(); }

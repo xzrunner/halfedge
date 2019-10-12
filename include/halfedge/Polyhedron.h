@@ -47,6 +47,7 @@ public:
     void Fill();
     void Fuse(float distance = 0.001f);
     static PolyhedronPtr Fuse(const std::vector<PolyhedronPtr>& polys, float distance = 0.001f);
+    bool Extrude(float distance, TopoID face_id, bool add_front, bool add_back, bool add_side);
 
     // test
     bool IsContain(const sm::vec3& pos) const;
@@ -59,6 +60,8 @@ private:
     void BuildFromCube(const sm::cube& aabb);
     void BuildFromPolygons(const std::vector<std::pair<TopoID, sm::vec3>>& vertices,
         const std::vector<std::pair<TopoID, std::vector<size_t>>>& faces);
+
+    void RemoveFace(Face* face);
 
 private:
     DoublyLinkedList<Vertex> m_vertices;
