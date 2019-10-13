@@ -84,11 +84,13 @@ void Polyhedron::UpdateAABB()
 	m_aabb.MakeEmpty();
 
     auto head = m_vertices.Head();
-    auto v = head;
-    do {
-        m_aabb.Combine(v->position);
-        v = v->linked_next;
-    } while (v != head);
+    if (head) {
+        auto v = head;
+        do {
+            m_aabb.Combine(v->position);
+            v = v->linked_next;
+        } while (v != head);
+    }
 }
 
 void Polyhedron::OffsetTopoID(size_t v_off, size_t e_off, size_t f_off)
