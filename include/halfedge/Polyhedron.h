@@ -47,7 +47,8 @@ public:
     void Fill();
     void Fuse(float distance = 0.001f);
     static PolyhedronPtr Fuse(const std::vector<PolyhedronPtr>& polys, float distance = 0.001f);
-    bool Extrude(float distance, TopoID face_id, bool add_front, bool add_back, bool add_side);
+    bool Extrude(float distance, const std::vector<TopoID>& face_ids,
+        bool add_front, bool add_back, bool add_side);
 
     // test
     bool IsContain(const sm::vec3& pos) const;
