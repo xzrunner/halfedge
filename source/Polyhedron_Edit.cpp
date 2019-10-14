@@ -202,12 +202,16 @@ PolyhedronPtr Polyhedron::Fuse(const std::vector<PolyhedronPtr>& polys, float di
     return ret;
 }
 
-bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids,
-                         bool add_front, bool add_back, bool add_side)
+bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bool create_face[ExtrudeMaxCount], 
+                         std::vector<Face*>* new_faces)
 {
     if (distance == 0) {
         return false;
     }
+
+    const bool add_front = create_face[ExtrudeFront];
+    const bool add_back  = create_face[ExtrudeBack];
+    const bool add_side  = create_face[ExtrudeSide];
 
     std::vector<sm::Plane> planes;
     std::map<he::Vertex*, std::vector<size_t>> vert2planes;
@@ -551,6 +555,20 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids,
     }
 
     UpdateAABB();
+
+    // return
+    if (new_faces)
+    {
+        new_faces[ExtrudeFront] = new_front_faces;
+        new_faces[ExtrudeBack]  = new_back_faces;
+
+        new_faces[ExtrudeSide].clear();
+        for (auto& faces : new_side_faces) {
+            for (auto& face : faces) {
+                new_faces[ExtrudeSide].push_back(face);
+            }
+        }
+    }
 
     return true;
 }
