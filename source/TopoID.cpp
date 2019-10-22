@@ -19,6 +19,14 @@ void TopoID::Append(size_t id)
     UpdateUID();
 }
 
+void TopoID::Pop()
+{
+    if (!m_path.empty()) {
+        m_path.pop_back();
+        UpdateUID();
+    }
+}
+
 void TopoID::Offset(size_t off)
 {
     for (auto& p : m_path) {
