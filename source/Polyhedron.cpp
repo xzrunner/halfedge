@@ -286,9 +286,10 @@ void Polyhedron::BuildFromPolygons(const std::vector<std::pair<TopoID, sm::vec3>
             topo_id = TopoID(m_next_vert_id++);
         } else {
             topo_id = vert.first;
-            auto id = vert.first.ID();
-            if (id >= m_next_vert_id) {
-                m_next_vert_id = id + 1;
+            for (auto& id : vert.first.Path()) {
+                if (id >= m_next_vert_id) {
+                    m_next_vert_id = id + 1;
+                }
             }
         }
 
@@ -319,9 +320,10 @@ void Polyhedron::BuildFromPolygons(const std::vector<std::pair<TopoID, sm::vec3>
             topo_id = TopoID(m_next_face_id++);
         } else {
             topo_id = src_face.first;
-            auto id = src_face.first.ID();
-            if (id >= m_next_face_id) {
-                m_next_face_id = id + 1;
+            for (auto& id : src_face.first.Path()) {
+                if (id >= m_next_face_id) {
+                    m_next_face_id = id + 1;
+                }
             }
         }
 

@@ -225,9 +225,10 @@ void Polyline::BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>
             topo_id = TopoID(m_next_vert_id++);
         } else {
             topo_id = vert.first;
-            auto id = vert.first.ID();
-            if (id >= m_next_vert_id) {
-                m_next_vert_id = id + 1;
+            for (auto& id : vert.first.Path()) {
+                if (id >= m_next_vert_id) {
+                    m_next_vert_id = id + 1;
+                }
             }
         }
 
@@ -247,9 +248,10 @@ void Polyline::BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>
             topo_id = TopoID(m_next_polyline_id++);
         } else {
             topo_id = src_polyline.first;
-            auto id = src_polyline.first.ID();
-            if (id >= m_next_polyline_id) {
-                m_next_polyline_id = id + 1;
+            for (auto& id : src_polyline.first.Path()) {
+                if (id >= m_next_polyline_id) {
+                    m_next_polyline_id = id + 1;
+                }
             }
         }
 

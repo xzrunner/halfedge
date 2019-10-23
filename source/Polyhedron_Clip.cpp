@@ -130,7 +130,7 @@ he::Edge* SplitEdgeByPlane(he::Edge* edge, const sm::Plane& plane,
     auto pos = s_pos + (e_pos - s_pos) * dot;
     auto new_vert = new he::Vertex(pos, next_vert_id++);
     vertices.Append(new_vert);
-    auto new_edge = new he::Edge(new_vert, edge->face, edge->ids.ID());
+    auto new_edge = new he::Edge(new_vert, edge->face, edge->ids);
     new_edge->ids.Append(next_edge_id++);
     edges.Append(new_edge);
 
@@ -141,7 +141,7 @@ he::Edge* SplitEdgeByPlane(he::Edge* edge, const sm::Plane& plane,
     auto twin_edge = edge->twin;
     if (twin_edge)
     {
-        auto new_twin_edge = new he::Edge(new_vert, twin_edge->face, twin_edge->ids.ID());
+        auto new_twin_edge = new he::Edge(new_vert, twin_edge->face, twin_edge->ids);
         new_twin_edge->ids.Append(next_edge_id++);
         edges.Append(new_twin_edge);
 
@@ -175,7 +175,7 @@ void IntersectWithPlane(he::Edge* old_boundary_first,
     new_boundary_first_prev->Connect(old_boundary_splitter);
     old_boundary_splitter->Connect(old_boundary_first);
 
-    auto new_face = new he::Face(new_boundary_first->face->ids.ID());
+    auto new_face = new he::Face(new_boundary_first->face->ids);
     new_face->ids.Append(next_face_id++);
     he::bind_edge_face(new_face, new_boundary_first);
 

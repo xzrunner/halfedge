@@ -18,7 +18,6 @@ public:
     void Append(size_t id);
     void Pop();
 
-    size_t ID() const { return m_path.empty() ? 0xffffffff : m_path.back(); }
     size_t UID() const { return m_uid; }
 
     bool Empty() const { return m_path.empty(); }
