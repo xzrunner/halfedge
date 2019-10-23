@@ -276,6 +276,33 @@ he::Edge* FindNextIntersectingEdge(he::Edge* search_from, const sm::Plane& plane
     return nullptr;
 }
 
+std::vector<he::Edge*> IntersectWithPlaneImpl(he::Edge* start_edge, const sm::Plane& plane,
+                                              he::DoublyLinkedList<he::Vertex>& vertices,
+                                              he::DoublyLinkedList<he::Edge>& edges,
+                                              he::DoublyLinkedList<he::Face>& faces,
+                                              size_t& next_vert_id, size_t& next_edge_id, size_t& next_face_id)
+{
+    std::vector<he::Edge*> seam;
+
+    auto curr_edge = start_edge;
+    auto stop_vert = curr_edge->next->vert;
+    do {
+        curr_edge = FindNextIntersectingEdge(curr_edge, plane);
+        if (!curr_edge) {
+            return std::vector<he::Edge*>();
+        }
+
+        curr_edge = IntersectWithPlane(curr_edge, plane, vertices, edges, faces, next_vert_id, next_edge_id, next_face_id);
+        seam.push_back(curr_edge);
+    } while (curr_edge->next->vert != stop_vert);
+
+    if (seam.empty()) {
+        seam.push_back(start_edge);
+    }
+
+    return seam;
+}
+
 std::vector<he::Edge*> IntersectWithPlane(const sm::Plane& plane,
                                           he::DoublyLinkedList<he::Vertex>& vertices,
                                           he::DoublyLinkedList<he::Edge>& edges,
@@ -287,21 +314,14 @@ std::vector<he::Edge*> IntersectWithPlane(const sm::Plane& plane,
     auto init_edge = FindInitialIntersectingEdge(plane, edges);
     assert(init_edge);
 
-    auto curr_edge = IntersectWithPlane(init_edge, plane, vertices, edges, faces, next_vert_id, next_edge_id, next_face_id);
-    auto stop_vert = curr_edge->next->vert;
-    auto first = curr_edge;
-    do {
-        curr_edge = FindNextIntersectingEdge(curr_edge, plane);
-        if (!curr_edge) {
-            break;
-        }
-
-        curr_edge = IntersectWithPlane(curr_edge, plane, vertices, edges, faces, next_vert_id, next_edge_id, next_face_id);
-        seam.push_back(curr_edge);
-    } while (curr_edge->next->vert != stop_vert);
+    auto start_edge = IntersectWithPlane(init_edge, plane, vertices, edges, faces, next_vert_id, next_edge_id, next_face_id);
+    seam = IntersectWithPlaneImpl(start_edge, plane, vertices, edges, faces, next_vert_id, next_edge_id, next_face_id);
+    if (seam.empty()) {
+        seam = IntersectWithPlaneImpl(start_edge->twin, plane, vertices, edges, faces, next_vert_id, next_edge_id, next_face_id);
+    }
 
     if (seam.empty()) {
-        seam.push_back(first);
+        seam.push_back(start_edge);
     }
 
     return seam;
