@@ -8,22 +8,26 @@
 namespace
 {
 
-void BuildMapVert2Edges(const he::Polyhedron& src, std::map<he::Vertex*, std::vector<he::Edge*>>& dst)
+void BuildMapVert2Edges(const he::Polyhedron& src, std::vector<std::pair<he::Vertex*, std::vector<he::Edge*>>>& dst)
 {
+    std::map<he::Vertex*, size_t> vert2idx;
+
     auto vert_first = src.GetVertices().Head();
     auto vert_curr = vert_first;
+    size_t idx = 0;
     do {
-        auto ret = dst.insert({ vert_curr, std::vector<he::Edge*>() });
-        assert(ret.second);
+        dst.push_back({ vert_curr, std::vector<he::Edge*>() });
+        vert2idx.insert({ vert_curr, idx++ });
+
         vert_curr = vert_curr->linked_next;
     } while (vert_curr != vert_first);
 
     auto edge_first = src.GetEdges().Head();
     auto edge_curr = edge_first;
     do {
-        auto itr = dst.find(edge_curr->vert);
-        assert(itr != dst.end());
-        itr->second.push_back(edge_curr);
+        auto itr = vert2idx.find(edge_curr->vert);
+        assert(itr != vert2idx.end());
+        dst[itr->second].second.push_back(edge_curr);
         edge_curr = edge_curr->linked_next;
     } while (edge_curr != edge_first);
 }
@@ -116,7 +120,7 @@ void Polyhedron::Fill()
 
 void Polyhedron::Fuse(float distance)
 {
-    std::map<Vertex*, std::vector<Edge*>> vert2edges;
+    std::vector<std::pair<he::Vertex*, std::vector<he::Edge*>>> vert2edges;
     BuildMapVert2Edges(*this, vert2edges);
 
     for (auto itr0 = vert2edges.begin(); itr0 != vert2edges.end(); ++itr0)
@@ -583,7 +587,7 @@ void Polyhedron::RemoveFace(Face* face)
 {
     m_faces.Remove(face);
 
-    std::map<Vertex*, std::vector<Edge*>> vert2edges;
+    std::vector<std::pair<he::Vertex*, std::vector<he::Edge*>>> vert2edges;
     BuildMapVert2Edges(*this, vert2edges);
 
     std::vector<Edge*> del_edges;
