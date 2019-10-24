@@ -25,6 +25,8 @@ public:
 
     void Fuse(float distance = 0.001f);
 
+    void UniquePoints();
+
 private:
     void OffsetTopoID(size_t v_off, size_t e_off, size_t f_off);
 

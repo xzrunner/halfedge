@@ -39,15 +39,21 @@ public:
     bool Clip(const sm::Plane& plane, KeepType keep, bool seam_face = false);
 
     // boolean
+
     PolyhedronPtr Union(const Polyhedron& other) const;
     PolyhedronPtr Intersect(const Polyhedron& other) const;
     std::vector<PolyhedronPtr> Subtract(const Polyhedron& subtrahend) const;
 
     // edit
+
     void Fill();
+
     void Fuse(float distance = 0.001f);
     static PolyhedronPtr Fuse(const std::vector<PolyhedronPtr>& polys, float distance = 0.001f);
-    enum ExtrudeFaceType 
+
+    void UniquePoints();
+
+    enum ExtrudeFaceType
     {
         ExtrudeFront = 0,
         ExtrudeBack,
@@ -58,6 +64,7 @@ public:
         bool create_face[ExtrudeMaxCount], std::vector<Face*>* new_faces = nullptr);
 
     // test
+
     bool IsContain(const sm::vec3& pos) const;
 
 private:

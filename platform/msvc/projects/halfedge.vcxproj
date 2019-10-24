@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\halfedge\DoublyLinkedList.h" />
+    <ClInclude Include="..\..\..\include\halfedge\EditHelper.h" />
     <ClInclude Include="..\..\..\include\halfedge\HalfEdge.h" />
     <ClInclude Include="..\..\..\include\halfedge\Polyhedron.h" />
     <ClInclude Include="..\..\..\include\halfedge\Polyline.h" />
@@ -19,6 +20,7 @@
     <ClInclude Include="..\..\..\include\halfedge\typedef.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\source\EditHelper.cpp" />
     <ClCompile Include="..\..\..\source\HalfEdge.cpp" />
     <ClCompile Include="..\..\..\source\Polyhedron.cpp" />
     <ClCompile Include="..\..\..\source\Polyhedron_Clip.cpp" />

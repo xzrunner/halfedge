@@ -1,4 +1,5 @@
 #include "halfedge/Polyline.h"
+#include "halfedge/EditHelper.h"
 
 #include <SM_Calc.h>
 
@@ -149,6 +150,11 @@ void Polyline::Fuse(float distance)
         m_vertices.Remove(v);
         delete v;
     }
+}
+
+void Polyline::UniquePoints()
+{
+    EditHelper::UniquePoints(m_vertices, m_edges, m_next_vert_id);
 }
 
 void Polyline::OffsetTopoID(size_t v_off, size_t e_off, size_t f_off)

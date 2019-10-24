@@ -1,4 +1,5 @@
 #include "halfedge/Polyhedron.h"
+#include "halfedge/EditHelper.h"
 
 #include <SM_Calc.h>
 
@@ -202,7 +203,12 @@ PolyhedronPtr Polyhedron::Fuse(const std::vector<PolyhedronPtr>& polys, float di
     return ret;
 }
 
-bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bool create_face[ExtrudeMaxCount], 
+void Polyhedron::UniquePoints()
+{
+    EditHelper::UniquePoints(m_vertices, m_edges, m_next_vert_id);
+}
+
+bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bool create_face[ExtrudeMaxCount],
                          std::vector<Face*>* new_faces)
 {
     if (distance == 0) {
