@@ -6,6 +6,7 @@
 #include "halfedge/TopoID.h"
 
 #include <SM_Cube.h>
+#include <SM_Plane.h>
 
 #include <vector>
 #include <memory>
@@ -61,7 +62,7 @@ public:
         ExtrudeMaxCount,
     };
     bool Extrude(float distance, const std::vector<TopoID>& face_ids,
-        bool create_face[ExtrudeMaxCount], std::vector<Face*>* new_faces = nullptr);
+        bool create_face[ExtrudeMaxCount], std::vector<face3*>* new_faces = nullptr);
 
     // test
 
@@ -76,12 +77,12 @@ private:
     void BuildFromPolygons(const std::vector<std::pair<TopoID, sm::vec3>>& vertices,
         const std::vector<std::pair<TopoID, std::vector<size_t>>>& faces);
 
-    void RemoveFace(Face* face);
+    void RemoveFace(face3* face);
 
 private:
-    DoublyLinkedList<Vertex> m_vertices;
-    DoublyLinkedList<Edge>   m_edges;
-    DoublyLinkedList<Face>   m_faces;
+    DoublyLinkedList<vert3> m_vertices;
+    DoublyLinkedList<edge3>   m_edges;
+    DoublyLinkedList<face3>   m_faces;
 
     static size_t m_next_vert_id;
     static size_t m_next_edge_id;

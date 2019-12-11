@@ -32,7 +32,7 @@ Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
     std::vector<std::pair<TopoID, sm::vec3>> vertices;
     vertices.reserve(poly.m_vertices.Size());
 
-    std::map<Vertex*, size_t> vert2idx;
+    std::map<vert3*, size_t> vert2idx;
 
     auto v_head = poly.m_vertices.Head();
     if (!v_head) {
@@ -164,24 +164,24 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
 	sm::vec3 p7(aabb.max[0], aabb.max[1], aabb.min[2]);
 	sm::vec3 p8(aabb.max[0], aabb.max[1], aabb.max[2]);
 
-	auto left_bottom_front  = new Vertex(p1, m_next_vert_id++);
-	auto left_bottom_back   = new Vertex(p2, m_next_vert_id++);
-	auto left_top_front     = new Vertex(p3, m_next_vert_id++);
-	auto left_top_back      = new Vertex(p4, m_next_vert_id++);
-	auto right_bottom_front = new Vertex(p5, m_next_vert_id++);
-	auto right_bottom_back  = new Vertex(p6, m_next_vert_id++);
-	auto right_top_front    = new Vertex(p7, m_next_vert_id++);
-	auto right_top_back     = new Vertex(p8, m_next_vert_id++);
+	auto left_bottom_front  = new vert3(p1, m_next_vert_id++);
+	auto left_bottom_back   = new vert3(p2, m_next_vert_id++);
+	auto left_top_front     = new vert3(p3, m_next_vert_id++);
+	auto left_top_back      = new vert3(p4, m_next_vert_id++);
+	auto right_bottom_front = new vert3(p5, m_next_vert_id++);
+	auto right_bottom_back  = new vert3(p6, m_next_vert_id++);
+	auto right_top_front    = new vert3(p7, m_next_vert_id++);
+	auto right_top_back     = new vert3(p8, m_next_vert_id++);
 
     m_vertices.Append(left_bottom_front).Append(left_bottom_back).Append(left_top_front).Append(left_top_back)
               .Append(right_bottom_front).Append(right_bottom_back).Append(right_top_front).Append(right_top_back);
 
 	// Bottom face
-	auto bottom = new Face(m_next_face_id++);
-	auto bottom_left  = new Edge(left_bottom_front,  bottom, m_next_edge_id++);
-	auto bottom_back  = new Edge(left_bottom_back,   bottom, m_next_edge_id++);
-	auto bottom_right = new Edge(right_bottom_back,  bottom, m_next_edge_id++);
-	auto bottom_front = new Edge(right_bottom_front, bottom, m_next_edge_id++);
+	auto bottom = new face3(m_next_face_id++);
+	auto bottom_left  = new edge3(left_bottom_front,  bottom, m_next_edge_id++);
+	auto bottom_back  = new edge3(left_bottom_back,   bottom, m_next_edge_id++);
+	auto bottom_right = new edge3(right_bottom_back,  bottom, m_next_edge_id++);
+	auto bottom_front = new edge3(right_bottom_front, bottom, m_next_edge_id++);
     bottom_left->Connect(bottom_back)->Connect(bottom_right)
                ->Connect(bottom_front)->Connect(bottom_left);
 	bottom->edge = bottom_left;
@@ -190,11 +190,11 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
 	m_faces.Append(bottom);
 
 	// Left face
-	auto left = new Face(m_next_face_id++);
-	auto left_bottom = new Edge(left_bottom_back,  left, m_next_edge_id++);
-    auto left_front  = new Edge(left_bottom_front, left, m_next_edge_id++);
-    auto left_top    = new Edge(left_top_front,    left, m_next_edge_id++);
-	auto left_back   = new Edge(left_top_back,     left, m_next_edge_id++);
+	auto left = new face3(m_next_face_id++);
+	auto left_bottom = new edge3(left_bottom_back,  left, m_next_edge_id++);
+    auto left_front  = new edge3(left_bottom_front, left, m_next_edge_id++);
+    auto left_top    = new edge3(left_top_front,    left, m_next_edge_id++);
+	auto left_back   = new edge3(left_top_back,     left, m_next_edge_id++);
     left_bottom->Connect(left_front)->Connect(left_top)
                ->Connect(left_back)->Connect(left_bottom);
 	left->edge = left_bottom;
@@ -203,11 +203,11 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     m_faces.Append(left);
 
 	// Front face
-	auto front = new Face(m_next_face_id++);
-	auto front_left   = new Edge(left_top_front,     front, m_next_edge_id++);
-    auto front_bottom = new Edge(left_bottom_front,  front, m_next_edge_id++);
-    auto front_right  = new Edge(right_bottom_front, front, m_next_edge_id++);
-	auto front_top    = new Edge(right_top_front,    front, m_next_edge_id++);
+	auto front = new face3(m_next_face_id++);
+	auto front_left   = new edge3(left_top_front,     front, m_next_edge_id++);
+    auto front_bottom = new edge3(left_bottom_front,  front, m_next_edge_id++);
+    auto front_right  = new edge3(right_bottom_front, front, m_next_edge_id++);
+	auto front_top    = new edge3(right_top_front,    front, m_next_edge_id++);
     front_left->Connect(front_bottom)->Connect(front_right)
               ->Connect(front_top)->Connect(front_left);
 	front->edge = front_left;
@@ -216,11 +216,11 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     m_faces.Append(front);
 
 	// Back face
-	auto back = new Face(m_next_face_id++);
-	auto back_bottom = new Edge(right_bottom_back, back, m_next_edge_id++);
-    auto back_left   = new Edge(left_bottom_back,  back, m_next_edge_id++);
-    auto back_top    = new Edge(left_top_back,     back, m_next_edge_id++);
-	auto back_right  = new Edge(right_top_back,    back, m_next_edge_id++);
+	auto back = new face3(m_next_face_id++);
+	auto back_bottom = new edge3(right_bottom_back, back, m_next_edge_id++);
+    auto back_left   = new edge3(left_bottom_back,  back, m_next_edge_id++);
+    auto back_top    = new edge3(left_top_back,     back, m_next_edge_id++);
+	auto back_right  = new edge3(right_top_back,    back, m_next_edge_id++);
     back_bottom->Connect(back_left)->Connect(back_top)
                ->Connect(back_right)->Connect(back_bottom);
 	back->edge = back_bottom;
@@ -229,11 +229,11 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     m_faces.Append(back);
 
 	// Top face
-	auto top = new Face(m_next_face_id++);
-	auto top_left  = new Edge(left_top_back,   top, m_next_edge_id++);
-    auto top_front = new Edge(left_top_front,  top, m_next_edge_id++);
-    auto top_right = new Edge(right_top_front, top, m_next_edge_id++);
-	auto top_back  = new Edge(right_top_back,  top, m_next_edge_id++);
+	auto top = new face3(m_next_face_id++);
+	auto top_left  = new edge3(left_top_back,   top, m_next_edge_id++);
+    auto top_front = new edge3(left_top_front,  top, m_next_edge_id++);
+    auto top_right = new edge3(right_top_front, top, m_next_edge_id++);
+	auto top_back  = new edge3(right_top_back,  top, m_next_edge_id++);
     top_left->Connect(top_front)->Connect(top_right)
             ->Connect(top_back)->Connect(top_left);
 	top->edge = top_left;
@@ -242,11 +242,11 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     m_faces.Append(top);
 
 	// Right face
-	auto right = new Face(m_next_face_id++);
-	auto right_front  = new Edge(right_top_front,    right, m_next_edge_id++);
-    auto right_bottom = new Edge(right_bottom_front, right, m_next_edge_id++);
-    auto right_back   = new Edge(right_bottom_back,  right, m_next_edge_id++);
-	auto right_top    = new Edge(right_top_back,     right, m_next_edge_id++);
+	auto right = new face3(m_next_face_id++);
+	auto right_front  = new edge3(right_top_front,    right, m_next_edge_id++);
+    auto right_bottom = new edge3(right_bottom_front, right, m_next_edge_id++);
+    auto right_back   = new edge3(right_bottom_back,  right, m_next_edge_id++);
+	auto right_top    = new edge3(right_top_back,     right, m_next_edge_id++);
     right_front->Connect(right_bottom)->Connect(right_back)
                ->Connect(right_top)->Connect(right_front);
 	right->edge = right_front;
@@ -275,7 +275,7 @@ void Polyhedron::BuildFromPolygons(const std::vector<std::pair<TopoID, sm::vec3>
 {
     Clear();
 
-    std::vector<Vertex*> v_array;
+    std::vector<vert3*> v_array;
     v_array.reserve(vertices.size());
     for (auto& vert : vertices)
     {
@@ -293,7 +293,7 @@ void Polyhedron::BuildFromPolygons(const std::vector<std::pair<TopoID, sm::vec3>
             }
         }
 
-        auto v = new Vertex(vert.second, topo_id);
+        auto v = new vert3(vert.second, topo_id);
         v_array.push_back(v);
         m_vertices.Append(v);
     }
@@ -308,7 +308,7 @@ void Polyhedron::BuildFromPolygons(const std::vector<std::pair<TopoID, sm::vec3>
                   (e0.first == e1.first && e0.second < e1.second);
         }
     }; // EdgeCmp
-    std::map<std::pair<size_t, size_t>, Edge*, EdgeCmp> map2edge;
+    std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp> map2edge;
 	for (auto& src_face : faces)
 	{
         if (src_face.second.size() < 2) {
@@ -327,11 +327,11 @@ void Polyhedron::BuildFromPolygons(const std::vector<std::pair<TopoID, sm::vec3>
             }
         }
 
-		auto face = new Face(topo_id);
+		auto face = new face3(topo_id);
 
 		assert(src_face.second.size() > 2);
-		Edge* first = nullptr;
-		Edge* last  = nullptr;
+		edge3* first = nullptr;
+		edge3* last  = nullptr;
 
 		for (int i = 0, n = src_face.second.size(); i < n; ++i)
 		{
@@ -341,7 +341,7 @@ void Polyhedron::BuildFromPolygons(const std::vector<std::pair<TopoID, sm::vec3>
             assert(curr_pos >= 0 && curr_pos < v_array.size());
             auto vert = v_array[curr_pos];
 			assert(vert);
-			auto edge = new Edge(vert, face, m_next_edge_id++);
+			auto edge = new edge3(vert, face, m_next_edge_id++);
             m_edges.Append(edge);
 			if (!first) {
 				first = edge;

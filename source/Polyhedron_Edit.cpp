@@ -1,5 +1,5 @@
 #include "halfedge/Polyhedron.h"
-#include "halfedge/EditHelper.h"
+#include "halfedge/Utility.h"
 
 #include <SM_Calc.h>
 
@@ -8,15 +8,15 @@
 namespace
 {
 
-void BuildMapVert2Edges(const he::Polyhedron& src, std::vector<std::pair<he::Vertex*, std::vector<he::Edge*>>>& dst)
+void BuildMapVert2Edges(const he::Polyhedron& src, std::vector<std::pair<he::vert3*, std::vector<he::edge3*>>>& dst)
 {
-    std::map<he::Vertex*, size_t> vert2idx;
+    std::map<he::vert3*, size_t> vert2idx;
 
     auto vert_first = src.GetVertices().Head();
     auto vert_curr = vert_first;
     size_t idx = 0;
     do {
-        dst.push_back({ vert_curr, std::vector<he::Edge*>() });
+        dst.push_back({ vert_curr, std::vector<he::edge3*>() });
         vert2idx.insert({ vert_curr, idx++ });
 
         vert_curr = vert_curr->linked_next;
@@ -33,13 +33,13 @@ void BuildMapVert2Edges(const he::Polyhedron& src, std::vector<std::pair<he::Ver
 }
 
 void BuildMapVert2Planes(const he::Polyhedron& src, std::vector<sm::Plane>& planes,
-                         std::map<he::Vertex*, std::vector<size_t>>& dst)
+                         std::map<he::vert3*, std::vector<size_t>>& dst)
 {
     auto first_face = src.GetFaces().Head();
     auto curr_face = first_face;
     do {
         sm::Plane plane;
-        he::face_to_plane(*curr_face, plane);
+        he::Utility::face_to_plane(*curr_face, plane);
         planes.push_back(plane);
 
         curr_face = curr_face->linked_next;
@@ -74,7 +74,7 @@ namespace he
 
 void Polyhedron::Fill()
 {
-    std::map<Vertex*, Edge*> new_edges;
+    std::map<vert3*, edge3*> new_edges;
 
     // create edges
     auto first = m_edges.Head();
@@ -82,7 +82,7 @@ void Polyhedron::Fill()
     do {
         if (!curr->twin)
         {
-            auto edge = new Edge(curr->next->vert, nullptr, m_next_edge_id++);
+            auto edge = new edge3(curr->next->vert, nullptr, m_next_edge_id++);
             auto ret = new_edges.insert({ edge->vert, edge });
             assert(ret.second);
             edge_make_pair(edge, curr);
@@ -94,15 +94,15 @@ void Polyhedron::Fill()
     // create face and connect new edges
     for (auto itr = new_edges.begin(); itr != new_edges.end(); ++itr)
     {
-        Edge* edge = itr->second;
+        edge3* edge = itr->second;
         if (edge->face) {
             continue;
         }
 
-        auto face = new Face(m_next_face_id++);
+        auto face = new face3(m_next_face_id++);
         face->edge = edge;
 
-        Vertex* first = edge->vert;
+        vert3* first = edge->vert;
         do {
             edge->face = face;
 
@@ -120,7 +120,7 @@ void Polyhedron::Fill()
 
 void Polyhedron::Fuse(float distance)
 {
-    std::vector<std::pair<he::Vertex*, std::vector<he::Edge*>>> vert2edges;
+    std::vector<std::pair<he::vert3*, std::vector<he::edge3*>>> vert2edges;
     BuildMapVert2Edges(*this, vert2edges);
 
     for (auto itr0 = vert2edges.begin(); itr0 != vert2edges.end(); ++itr0)
@@ -209,11 +209,11 @@ PolyhedronPtr Polyhedron::Fuse(const std::vector<PolyhedronPtr>& polys, float di
 
 void Polyhedron::UniquePoints()
 {
-    EditHelper::UniquePoints(m_vertices, m_edges, m_next_vert_id);
+    Utility::UniquePoints(m_vertices, m_edges, m_next_vert_id);
 }
 
 bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bool create_face[ExtrudeMaxCount],
-                         std::vector<Face*>* new_faces)
+                         std::vector<face3*>* new_faces)
 {
     if (distance == 0) {
         return false;
@@ -224,16 +224,16 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
     const bool add_side  = create_face[ExtrudeSide];
 
     std::vector<sm::Plane> planes;
-    std::map<he::Vertex*, std::vector<size_t>> vert2planes;
+    std::map<he::vert3*, std::vector<size_t>> vert2planes;
     BuildMapVert2Planes(*this, planes, vert2planes);
 
-    std::vector<Face*> old_front_faces;
+    std::vector<face3*> old_front_faces;
 
-    std::vector<Vertex*> new_vts;
-    std::map<Vertex*, Vertex*> vert_old2new;
+    std::vector<vert3*> new_vts;
+    std::map<vert3*, vert3*> vert_old2new;
 
-    std::vector<Face*> new_front_faces;
-    std::vector<std::vector<Edge*>> new_front_edges;
+    std::vector<face3*> new_front_faces;
+    std::vector<std::vector<edge3*>> new_front_edges;
 
     size_t plane_idx = 0;
     auto first_face = m_faces.Head();
@@ -253,20 +253,20 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
 
             old_front_faces.push_back(curr_face);
 
-            auto new_face = new Face(m_next_face_id++);
+            auto new_face = new face3(m_next_face_id++);
             new_front_faces.push_back(new_face);
 
-            std::vector<Edge*> new_edges;
+            std::vector<edge3*> new_edges;
 
             auto first_edge = curr_face->edge;
             auto curr_edge = first_edge;
             do {
-                Vertex* new_v = nullptr;
+                vert3* new_v = nullptr;
                 auto old_v = curr_edge->vert;
                 auto itr = vert_old2new.find(old_v);
                 if (itr == vert_old2new.end())
                 {
-                    new_v = new Vertex(old_v->position, m_next_vert_id++);
+                    new_v = new vert3(old_v->position, m_next_vert_id++);
                     new_vts.push_back(new_v);
                     vert_old2new.insert({ old_v, new_v });
                 }
@@ -275,7 +275,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
                     new_v = itr->second;
                 }
 
-                auto new_edge = new Edge(new_v, new_face, m_next_edge_id++);
+                auto new_edge = new edge3(new_v, new_face, m_next_edge_id++);
                 new_edges.push_back(new_edge);
 
                 curr_edge = curr_edge->next;
@@ -379,8 +379,8 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
     }
 
     // create side faces
-    std::vector<std::vector<std::vector<Edge*>>> new_side_edges;
-    std::vector<std::vector<Face*>> new_side_faces;
+    std::vector<std::vector<std::vector<edge3*>>> new_side_edges;
+    std::vector<std::vector<face3*>> new_side_faces;
     if (add_side)
     {
         assert(old_front_faces.size() == new_front_faces.size()
@@ -391,12 +391,12 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
         for (size_t i = 0, n = new_front_edges.size(); i < n; ++i) {
             new_side_faces[i].resize(new_front_edges[i].size());
             for (size_t j = 0, m = new_front_edges[i].size(); j < m; ++j) {
-                new_side_faces[i][j] = new Face(m_next_face_id++);
+                new_side_faces[i][j] = new face3(m_next_face_id++);
             }
         }
 
         // prepare side verts
-        std::vector<std::vector<Vertex*>> old_face_vts, new_face_vts;
+        std::vector<std::vector<vert3*>> old_face_vts, new_face_vts;
         old_face_vts.resize(old_front_faces.size());
         new_face_vts.resize(new_front_faces.size());
         assert(old_face_vts.size() == new_face_vts.size());
@@ -424,10 +424,10 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
             for (size_t j = 0, m = new_front_edges[i].size(); j < m; ++j)
             {
                 new_side_edges[i][j].resize(4);
-                new_side_edges[i][j][0] = new Edge(old_face_vts[i][j], new_side_faces[i][j], m_next_edge_id++);
-                new_side_edges[i][j][1] = new Edge(old_face_vts[i][(j + 1) % old_face_vts[i].size()], new_side_faces[i][j], m_next_edge_id++);
-                new_side_edges[i][j][2] = new Edge(new_face_vts[i][(j + 1) % new_face_vts[i].size()], new_side_faces[i][j], m_next_edge_id++);
-                new_side_edges[i][j][3] = new Edge(new_face_vts[i][j], new_side_faces[i][j], m_next_edge_id++);
+                new_side_edges[i][j][0] = new edge3(old_face_vts[i][j], new_side_faces[i][j], m_next_edge_id++);
+                new_side_edges[i][j][1] = new edge3(old_face_vts[i][(j + 1) % old_face_vts[i].size()], new_side_faces[i][j], m_next_edge_id++);
+                new_side_edges[i][j][2] = new edge3(new_face_vts[i][(j + 1) % new_face_vts[i].size()], new_side_faces[i][j], m_next_edge_id++);
+                new_side_edges[i][j][3] = new edge3(new_face_vts[i][j], new_side_faces[i][j], m_next_edge_id++);
                 for (size_t k = 0; k < 4; ++k) {
                     new_side_edges[i][j][k]->Connect(new_side_edges[i][j][(k + 1) % new_side_edges[i][j].size()]);
                 }
@@ -436,7 +436,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
         }
 
         // append side faces and edges
-        std::set<Edge*> all_old_edges;
+        std::set<edge3*> all_old_edges;
         for (auto& f : old_front_faces) {
             auto first_edge = f->edge;
             auto curr_edge = first_edge;
@@ -447,7 +447,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
         }
 
         // prepare for side seam
-        std::map<Edge*, std::pair<size_t, size_t>> old_front_edge_to_idx;
+        std::map<edge3*, std::pair<size_t, size_t>> old_front_edge_to_idx;
         for (size_t i = 0, n = old_front_faces.size(); i < n; ++i)
         {
             size_t j = 0;
@@ -500,8 +500,8 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
     }
 
     // create back faces
-    std::vector<Face*> new_back_faces;
-    std::vector<std::vector<Edge*>> new_back_edges;
+    std::vector<face3*> new_back_faces;
+    std::vector<std::vector<edge3*>> new_back_edges;
     new_back_edges.resize(old_front_faces.size());
     if (add_back)
     {
@@ -509,13 +509,13 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
         {
             auto& old_f = old_front_faces[i];
 
-            auto new_f = new Face(m_next_face_id++);
+            auto new_f = new face3(m_next_face_id++);
             new_back_faces.push_back(new_f);
 
             auto first_edge = old_f->edge;
             auto curr_edge = first_edge;
             do {
-                auto new_edge = new Edge(curr_edge->vert, new_f, m_next_edge_id++);
+                auto new_edge = new edge3(curr_edge->vert, new_f, m_next_edge_id++);
                 new_back_edges[i].push_back(new_edge);
                 m_edges.Append(new_edge);
 
@@ -583,14 +583,14 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
     return true;
 }
 
-void Polyhedron::RemoveFace(Face* face)
+void Polyhedron::RemoveFace(face3* face)
 {
     m_faces.Remove(face);
 
-    std::vector<std::pair<he::Vertex*, std::vector<he::Edge*>>> vert2edges;
+    std::vector<std::pair<he::vert3*, std::vector<he::edge3*>>> vert2edges;
     BuildMapVert2Edges(*this, vert2edges);
 
-    std::vector<Edge*> del_edges;
+    std::vector<edge3*> del_edges;
     auto first_edge = face->edge;
     auto curr_edge = first_edge;
     do {

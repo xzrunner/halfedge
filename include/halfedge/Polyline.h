@@ -5,6 +5,8 @@
 #include "halfedge/typedef.h"
 #include "halfedge/TopoID.h"
 
+#include <SM_Vector.h>
+
 #include <boost/noncopyable.hpp>
 
 namespace he
@@ -36,9 +38,9 @@ private:
         const std::vector<std::pair<TopoID, std::vector<size_t>>>& polylines);
 
 private:
-    DoublyLinkedList<Vertex> m_vertices;
-    DoublyLinkedList<Edge>   m_edges;
-    DoublyLinkedList<Face>   m_polylines;
+    DoublyLinkedList<vert3> m_vertices;
+    DoublyLinkedList<edge3>   m_edges;
+    DoublyLinkedList<face3>   m_polylines;
 
     static size_t m_next_vert_id;
     static size_t m_next_edge_id;

@@ -1,5 +1,5 @@
 #include "halfedge/Polyline.h"
-#include "halfedge/EditHelper.h"
+#include "halfedge/Utility.h"
 
 #include <SM_Calc.h>
 
@@ -28,7 +28,7 @@ Polyline& Polyline::operator = (const Polyline& poly)
     std::vector<std::pair<TopoID, sm::vec3>> vertices;
     vertices.reserve(poly.m_vertices.Size());
 
-    std::map<Vertex*, size_t> vert2idx;
+    std::map<vert3*, size_t> vert2idx;
 
     auto v_head = poly.m_vertices.Head();
     if (!v_head) {
@@ -81,13 +81,13 @@ void Polyline::Fuse(float distance)
         return;
     }
 
-    std::vector<he::Vertex*> del_vts;
+    std::vector<vert3*> del_vts;
 
     // invalid flags
     auto first_line = m_polylines.Head();
     auto curr_line = first_line;
     do {
-        he::Vertex* prev_vert = nullptr;
+        vert3* prev_vert = nullptr;
 
         auto first_edge = curr_line->edge;
         auto curr_edge = first_edge;
@@ -118,11 +118,11 @@ void Polyline::Fuse(float distance)
     first_line = m_polylines.Head();
     curr_line = first_line;
     do {
-        he::Vertex* prev_vert = nullptr;
+        vert3* prev_vert = nullptr;
 
         auto first_edge = curr_line->edge;
         auto curr_edge = first_edge;
-        he::Edge* prev_edge = nullptr;
+        edge3* prev_edge = nullptr;
         do {
             if (!curr_edge->vert->ids.IsValid())
             {
@@ -154,7 +154,7 @@ void Polyline::Fuse(float distance)
 
 void Polyline::UniquePoints()
 {
-    EditHelper::UniquePoints(m_vertices, m_edges, m_next_vert_id);
+    Utility::UniquePoints(m_vertices, m_edges, m_next_vert_id);
 }
 
 void Polyline::OffsetTopoID(size_t v_off, size_t e_off, size_t f_off)
@@ -222,7 +222,7 @@ void Polyline::BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>
 {
     Clear();
 
-    std::vector<Vertex*> v_array;
+    std::vector<vert3*> v_array;
     v_array.reserve(vertices.size());
     for (auto& vert : vertices)
     {
@@ -238,7 +238,7 @@ void Polyline::BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>
             }
         }
 
-        auto v = new Vertex(vert.second, topo_id);
+        auto v = new vert3(vert.second, topo_id);
         v_array.push_back(v);
         m_vertices.Append(v);
     }
@@ -261,11 +261,11 @@ void Polyline::BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>
             }
         }
 
-		auto polyline = new Face(topo_id);
+		auto polyline = new face3(topo_id);
 
 		assert(src_polyline.second.size() >= 2);
-		Edge* first = nullptr;
-		Edge* last  = nullptr;
+		edge3* first = nullptr;
+		edge3* last  = nullptr;
 
 		for (int i = 0, n = src_polyline.second.size(); i < n; ++i)
 		{
@@ -279,7 +279,7 @@ void Polyline::BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>
             assert(curr_pos >= 0 && curr_pos < v_array.size());
             auto vert = v_array[curr_pos];
 			assert(vert);
-			auto edge = new Edge(vert, polyline, m_next_edge_id++);
+			auto edge = new edge3(vert, polyline, m_next_edge_id++);
             m_edges.Append(edge);
 			if (!first) {
 				first = edge;

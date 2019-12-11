@@ -1,4 +1,5 @@
 #include "halfedge/Polyhedron.h"
+#include "halfedge/Utility.h"
 
 namespace
 {
@@ -29,7 +30,7 @@ DoIntersect(const he::Polyhedron& poly0, const he::Polyhedron& poly1)
     auto curr_face = first_face;
     do {
         sm::Plane plane;
-        face_to_plane(*curr_face, plane);
+        he::Utility::face_to_plane(*curr_face, plane);
 
         bool succ = ret->Clip(plane, he::Polyhedron::KeepType::KeepBelow, true);
         if (ret->GetFaces().Size() == 0) {
@@ -43,14 +44,14 @@ DoIntersect(const he::Polyhedron& poly0, const he::Polyhedron& poly1)
 }
 
 void DoSubtract(std::vector<he::PolyhedronPtr>& result, const std::vector<he::PolyhedronPtr>& fragments,
-                const he::Face* curr_face, const he::Face* first_face)
+                const he::face3* curr_face, const he::face3* first_face)
 {
     if (fragments.empty()) {
         return;
     }
 
     sm::Plane plane;
-    face_to_plane(*curr_face, plane);
+    he::Utility::face_to_plane(*curr_face, plane);
 
     std::vector<he::PolyhedronPtr> back_frags;
 

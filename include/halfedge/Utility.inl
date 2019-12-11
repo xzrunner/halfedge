@@ -1,15 +1,14 @@
-#include "halfedge/EditHelper.h"
-
-#include <set>
+#pragma once
 
 namespace he
 {
 
-void EditHelper::UniquePoints(DoublyLinkedList<Vertex>& vts,
-                              const DoublyLinkedList<Edge>& edges,
-                              size_t& next_vert_id)
+template<typename T>
+void Utility::UniquePoints(DoublyLinkedList<Vertex<T>>& vts,
+                           const DoublyLinkedList<Edge<T>>& edges,
+                           size_t& next_vert_id)
 {
-    std::set<Vertex*> unique;
+    std::set<Vertex<T>*> unique;
 
     auto first_edge = edges.Head();
     auto curr_edge = first_edge;
@@ -22,7 +21,7 @@ void EditHelper::UniquePoints(DoublyLinkedList<Vertex>& vts,
         }
         else
         {
-            auto new_v = new Vertex(v->position, v->ids);
+            auto new_v = new Vertex<T>(v->position, v->ids);
             new_v->ids.Append(next_vert_id++);
             vts.Append(new_v);
             curr_edge->vert = new_v;

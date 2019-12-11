@@ -3,18 +3,17 @@
 #include "halfedge/TopoID.h"
 
 #include <SM_Vector.h>
-#include <SM_Plane.h>
 
 namespace he
 {
 
-struct Vertex;
+template<typename T>
 struct Edge;
-struct Face;
 
+template<typename T>
 struct Vertex
 {
-	Vertex(sm::vec3 position, const TopoID& ids)
+	Vertex(const T& position, const TopoID& ids)
 		: ids(ids)
         , position(position)
 	{
@@ -22,20 +21,24 @@ struct Vertex
 
     TopoID ids;
 
-	sm::vec3 position;
+	T position;
 
     // one of the half-edges emantating from the vertex
-    Edge* edge = nullptr;
+    Edge<T>* edge = nullptr;
 
     // double linked list
-    Vertex* linked_prev = nullptr;
-    Vertex* linked_next = nullptr;
+    Vertex<T>* linked_prev = nullptr;
+    Vertex<T>* linked_next = nullptr;
 
 }; // Vertex
 
+template<typename T>
+struct Face;
+
+template<typename T>
 struct Edge
 {
-	Edge(Vertex* vert, Face* face, const TopoID& ids)
+	Edge(Vertex<T>* vert, Face<T>* face, const TopoID& ids)
 		: ids(ids)
         , vert(vert)
         , face(face)
@@ -43,24 +46,25 @@ struct Edge
         vert->edge = this;
     }
 
-    Edge* Connect(Edge* next);
+    Edge<T>* Connect(Edge<T>* next);
 
     TopoID ids;
 
-    Vertex* vert = nullptr;     // vertex at the begin of the half-edge
-    Face*   face = nullptr;     // face the half-edge borders
+    Vertex<T>* vert = nullptr;     // vertex at the begin of the half-edge
+    Face<T>*   face = nullptr;     // face the half-edge borders
 
-    Edge*   twin = nullptr;     // oppositely oriented adjacent half-edge
+    Edge<T>*   twin = nullptr;     // oppositely oriented adjacent half-edge
 
-    Edge*   prev = nullptr;     // prev half-edge around the face
-    Edge*   next = nullptr;     // next half-edge around the face
+    Edge<T>*   prev = nullptr;     // prev half-edge around the face
+    Edge<T>*   next = nullptr;     // next half-edge around the face
 
     // double linked list
-    Edge* linked_prev = nullptr;
-    Edge* linked_next = nullptr;
+    Edge<T>* linked_prev = nullptr;
+    Edge<T>* linked_next = nullptr;
 
 }; // Edge
 
+template<typename T>
 struct Face
 {
     Face(const TopoID& ids)
@@ -71,21 +75,29 @@ struct Face
     TopoID ids;
 
     // one of the half-edges bordering the face
-	Edge* edge = nullptr;
+	Edge<T>* edge = nullptr;
 
     // double linked list
-    Face* linked_prev = nullptr;
-    Face* linked_next = nullptr;
+    Face<T>* linked_prev = nullptr;
+    Face<T>* linked_next = nullptr;
 
 }; // Face
 
 // edge
-void edge_make_pair(Edge* e0, Edge* e1);
+template<typename T>
+void edge_make_pair(Edge<T>* e0, Edge<T>* e1);
 
-// face
-void face_to_vertices(const Face& face, std::vector<sm::vec3>& border);
-void face_to_plane(const Face& face, sm::Plane& plane);
+template<typename T>
+void bind_edge_face(Face<T>* face, Edge<T>* edge);
 
-void bind_edge_face(Face* face, Edge* edge);
+typedef Vertex<sm::vec2> vert2;
+typedef Edge<sm::vec2>   edge2;
+typedef Face<sm::vec2>   face2;
+
+typedef Vertex<sm::vec3> vert3;
+typedef Edge<sm::vec3>   edge3;
+typedef Face<sm::vec3>   face3;
 
 }
+
+#include "halfedge/HalfEdge.inl"
