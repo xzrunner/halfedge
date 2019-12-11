@@ -633,8 +633,10 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
             assert(e->next->vert == e->twin->vert);
         }
 
-        for (int i = 0, n = new_edges.size(); i < n; ++i) {
-            new_edges[i]->Connect(new_edges[(i - 1 + n) % n]);
+        if (new_edges.size() > 1) {
+            for (int i = 0, n = new_edges.size(); i < n; ++i) {
+                new_edges[i]->Connect(new_edges[(i - 1 + n) % n]);
+            }
         }
 
         for (auto& e : seam) {
