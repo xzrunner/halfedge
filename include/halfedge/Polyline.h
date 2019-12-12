@@ -39,8 +39,8 @@ private:
 
 private:
     DoublyLinkedList<vert3> m_vertices;
-    DoublyLinkedList<edge3>   m_edges;
-    DoublyLinkedList<face3>   m_polylines;
+    DoublyLinkedList<edge3> m_edges;
+    DoublyLinkedList<face3> m_polylines;
 
     static size_t m_next_vert_id;
     static size_t m_next_edge_id;

@@ -271,11 +271,6 @@ void Polyline::BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>
 		{
             auto& curr_pos = src_polyline.second[i];
             auto& next_pos = src_polyline.second[(i + 1) % n];
-
-            if (curr_pos >= v_array.size()) {
-                int zz = 0;
-            }
-
             assert(curr_pos >= 0 && curr_pos < v_array.size());
             auto vert = v_array[curr_pos];
 			assert(vert);
