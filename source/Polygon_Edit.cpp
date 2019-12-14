@@ -328,21 +328,12 @@ bool Polygon::Offset(float distance, KeepType keep)
     {
     case KeepType::KeepInside:
     {
-        auto first_l = m_borders.Head();
-        auto curr_l = first_l;
-        do {
-            offset_loop(curr_l->edge, distance);
-            curr_l = curr_l->linked_next;
-        } while (curr_l != first_l);
-
-        first_l = m_holes.Head();
-        if (first_l)
+        for (auto& face : m_faces)
         {
-            curr_l = first_l;
-            do {
-                offset_loop(curr_l->edge, distance);
-                curr_l = curr_l->linked_next;
-            } while (curr_l != first_l);
+            offset_loop(face.border->edge, distance);
+            for (auto& hole : face.holes) {
+                offset_loop(hole->edge, distance);
+            }
         }
     }
         break;
@@ -350,31 +341,29 @@ bool Polygon::Offset(float distance, KeepType keep)
     {
         if (distance > 0)
         {
-            auto first_l = m_borders.Head();
-            auto curr_l = first_l;
-            do {
+            for (auto& face : m_faces)
+            {
                 auto hole = new loop2(m_next_loop_id++);
-                hole->edge = clone_loop(curr_l, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+                hole->edge = clone_loop(face.border, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
                 Utility::FlipLoop(*hole->edge);
-                offset_loop(curr_l->edge, distance);
-                m_holes.Append(hole);
+                offset_loop(face.border->edge, distance);
+                m_loops.Append(hole);
 
-                curr_l = curr_l->linked_next;
-            } while (curr_l != first_l);
+                face.holes.push_back(hole);
+            }
         }
         else
         {
-            auto first_l = m_borders.Head();
-            auto curr_l = first_l;
-            do {
+            for (auto& face : m_faces)
+            {
                 auto hole = new loop2(m_next_loop_id++);
-                auto new_loop = calc_offset_loop(curr_l->edge, distance);
+                auto new_loop = calc_offset_loop(face.border->edge, distance);
                 hole->edge = create_loop(new_loop, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
                 Utility::FlipLoop(*hole->edge);
-                m_holes.Append(hole);
+                m_loops.Append(hole);
 
-                curr_l = curr_l->linked_next;
-            } while (curr_l != first_l);
+                face.holes.push_back(hole);
+            }
         }
     }
         break;

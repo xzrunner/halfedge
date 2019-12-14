@@ -13,18 +13,25 @@ namespace he
 class Polygon : boost::noncopyable
 {
 public:
+    struct Face
+    {
+        loop2* border = nullptr;
+        std::vector<loop2*> holes;
+    };
+
+    using in_vert = std::pair<TopoID, sm::vec2>;
+    using in_loop = std::vector<size_t>;
+    using in_face = std::tuple<TopoID, in_loop, std::vector<in_loop>>;
+
+public:
     Polygon() {}
     Polygon(const Polygon& poly);
-    Polygon(const std::vector<std::pair<TopoID, sm::vec2>>& verts,
-        const std::vector<std::pair<TopoID, std::vector<size_t>>>& borders,
-        const std::vector<std::pair<TopoID, std::vector<size_t>>>& holes);
+    Polygon(const std::vector<in_vert>& verts, const std::vector<in_face>& faces);
     Polygon& operator = (const Polygon& poly);
 
     auto& GetVerts() const { return m_verts; }
-    auto& GetEdges() const    { return m_edges; }
-
-    auto& GetBorders() const { return m_borders; }
-    auto& GetHoles() const { return m_holes; }
+    auto& GetEdges() const { return m_edges; }
+    auto& GetFaces() const { return m_faces; }
 
     enum class KeepType
     {
@@ -37,23 +44,19 @@ public:
 private:
     void Clear();
 
-    void BuildFromLoops(const std::vector<std::pair<TopoID, sm::vec2>>& verts,
-        const std::vector<std::pair<TopoID, std::vector<size_t>>>& borders,
-        const std::vector<std::pair<TopoID, std::vector<size_t>>>& holes);
+    void BuildFromLoops(const std::vector<in_vert>& verts, const std::vector<in_face>& faces);
 
-    loop2* CreateLoop(const std::vector<vert2*>& verts, const std::pair<TopoID, std::vector<size_t>>& loop);
+    loop2* CreateLoop(const std::vector<vert2*>& verts, TopoID id, const std::vector<size_t>& loop);
 
-    static std::vector<std::pair<TopoID, sm::vec2>>
-        DumpVertices(const DoublyLinkedList<vert2>& verts, std::map<vert2*, size_t>& vert2idx);
-    static std::vector<std::pair<TopoID, std::vector<size_t>>>
-        DumpLoops(const DoublyLinkedList<loop2>& loops, const std::map<vert2*, size_t>& vert2idx);
+    static std::vector<in_vert> DumpVertices(const DoublyLinkedList<vert2>& verts, std::map<vert2*, size_t>& vert2idx);
+    static in_loop DumpLoop(const loop2& loop, const std::map<vert2*, size_t>& vert2idx);
 
 private:
     DoublyLinkedList<vert2> m_verts;
     DoublyLinkedList<edge2> m_edges;
+    DoublyLinkedList<loop2> m_loops;
 
-    DoublyLinkedList<loop2> m_borders;
-    DoublyLinkedList<loop2> m_holes;
+    std::vector<Face> m_faces;
 
     static size_t m_next_vert_id;
     static size_t m_next_edge_id;
