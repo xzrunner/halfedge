@@ -76,14 +76,31 @@ public:
 
     bool IsContain(const sm::vec3& pos) const;
 
+    class EdgeCmp
+    {
+    public:
+        bool operator () (
+            const std::pair<size_t, size_t>& e0,
+            const std::pair<size_t, size_t>& e1) const {
+            return e0.first < e1.first ||
+                (e0.first == e1.first && e0.second < e1.second);
+        }
+    }; // EdgeCmp
+
 private:
     void OffsetTopoID(size_t v_off, size_t e_off, size_t f_off);
 
     void Clear();
 
     void BuildFromCube(const sm::cube& aabb);
-    void BuildFromPolygons(const std::vector<std::pair<TopoID, sm::vec3>>& vertices,
-        const std::vector<std::pair<TopoID, std::vector<size_t>>>& faces);
+    void BuildFromFaces(const std::vector<in_vert>& verts,
+        const std::vector<in_face1>& faces);
+    void BuildFromFaces(const std::vector<in_vert>& verts,
+        const std::vector<in_face2>& faces);
+
+    void BuildVertices(const std::vector<in_vert>& verts, std::vector<vert3*>& v_array);
+    face3* BuildLoop(TopoID id, const std::vector<size_t>& loop, const std::vector<vert3*>& v_array,
+        std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp>& map2edge);
 
     void RemoveFace(face3* face);
 

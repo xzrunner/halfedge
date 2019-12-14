@@ -23,6 +23,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\source\Polygon.cpp" />
     <ClCompile Include="..\..\..\source\Polygon_Edit.cpp" />
+    <ClCompile Include="..\..\..\source\Polyhedron_Build.cpp" />
     <ClCompile Include="..\..\..\source\Utility.cpp" />
     <ClCompile Include="..\..\..\source\HalfEdge.cpp" />
     <ClCompile Include="..\..\..\source\Polyhedron.cpp" />

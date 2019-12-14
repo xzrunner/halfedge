@@ -1,0 +1,273 @@
+#include "halfedge/Polyhedron.h"
+
+namespace
+{
+
+void make_edge_pair(std::map<std::pair<size_t, size_t>, he::edge3*, he::Polyhedron::EdgeCmp>& map2edge)
+{
+    for (auto& itr : map2edge)
+    {
+        if (itr.second->twin) {
+            continue;
+        }
+
+        auto itr_twin = map2edge.find({ itr.first.second, itr.first.first });
+        if (itr_twin != map2edge.end()) {
+            he::edge_make_pair(itr.second, itr_twin->second);
+        }
+    }
+}
+
+}
+
+namespace he
+{
+
+void Polyhedron::BuildFromCube(const sm::cube& aabb)
+{
+    Clear();
+
+    m_aabb = aabb;
+
+	sm::vec3 p1(aabb.min[0], aabb.min[1], aabb.min[2]);
+	sm::vec3 p2(aabb.min[0], aabb.min[1], aabb.max[2]);
+	sm::vec3 p3(aabb.min[0], aabb.max[1], aabb.min[2]);
+	sm::vec3 p4(aabb.min[0], aabb.max[1], aabb.max[2]);
+	sm::vec3 p5(aabb.max[0], aabb.min[1], aabb.min[2]);
+	sm::vec3 p6(aabb.max[0], aabb.min[1], aabb.max[2]);
+	sm::vec3 p7(aabb.max[0], aabb.max[1], aabb.min[2]);
+	sm::vec3 p8(aabb.max[0], aabb.max[1], aabb.max[2]);
+
+	auto left_bottom_front  = new vert3(p1, m_next_vert_id++);
+	auto left_bottom_back   = new vert3(p2, m_next_vert_id++);
+	auto left_top_front     = new vert3(p3, m_next_vert_id++);
+	auto left_top_back      = new vert3(p4, m_next_vert_id++);
+	auto right_bottom_front = new vert3(p5, m_next_vert_id++);
+	auto right_bottom_back  = new vert3(p6, m_next_vert_id++);
+	auto right_top_front    = new vert3(p7, m_next_vert_id++);
+	auto right_top_back     = new vert3(p8, m_next_vert_id++);
+
+    m_verts.Append(left_bottom_front).Append(left_bottom_back).Append(left_top_front).Append(left_top_back)
+              .Append(right_bottom_front).Append(right_bottom_back).Append(right_top_front).Append(right_top_back);
+
+	// Bottom face
+	auto bottom = new face3(m_next_face_id++);
+	auto bottom_left  = new edge3(left_bottom_front,  bottom, m_next_edge_id++);
+	auto bottom_back  = new edge3(left_bottom_back,   bottom, m_next_edge_id++);
+	auto bottom_right = new edge3(right_bottom_back,  bottom, m_next_edge_id++);
+	auto bottom_front = new edge3(right_bottom_front, bottom, m_next_edge_id++);
+    bottom_left->Connect(bottom_back)->Connect(bottom_right)
+               ->Connect(bottom_front)->Connect(bottom_left);
+	bottom->edge = bottom_left;
+    m_edges.Append(bottom_left).Append(bottom_back)
+           .Append(bottom_right).Append(bottom_front);
+	m_faces.Append(bottom);
+
+	// Left face
+	auto left = new face3(m_next_face_id++);
+	auto left_bottom = new edge3(left_bottom_back,  left, m_next_edge_id++);
+    auto left_front  = new edge3(left_bottom_front, left, m_next_edge_id++);
+    auto left_top    = new edge3(left_top_front,    left, m_next_edge_id++);
+	auto left_back   = new edge3(left_top_back,     left, m_next_edge_id++);
+    left_bottom->Connect(left_front)->Connect(left_top)
+               ->Connect(left_back)->Connect(left_bottom);
+	left->edge = left_bottom;
+    m_edges.Append(left_bottom).Append(left_front)
+           .Append(left_top).Append(left_back);
+    m_faces.Append(left);
+
+	// Front face
+	auto front = new face3(m_next_face_id++);
+	auto front_left   = new edge3(left_top_front,     front, m_next_edge_id++);
+    auto front_bottom = new edge3(left_bottom_front,  front, m_next_edge_id++);
+    auto front_right  = new edge3(right_bottom_front, front, m_next_edge_id++);
+	auto front_top    = new edge3(right_top_front,    front, m_next_edge_id++);
+    front_left->Connect(front_bottom)->Connect(front_right)
+              ->Connect(front_top)->Connect(front_left);
+	front->edge = front_left;
+    m_edges.Append(front_left).Append(front_bottom)
+           .Append(front_right).Append(front_top);
+    m_faces.Append(front);
+
+	// Back face
+	auto back = new face3(m_next_face_id++);
+	auto back_bottom = new edge3(right_bottom_back, back, m_next_edge_id++);
+    auto back_left   = new edge3(left_bottom_back,  back, m_next_edge_id++);
+    auto back_top    = new edge3(left_top_back,     back, m_next_edge_id++);
+	auto back_right  = new edge3(right_top_back,    back, m_next_edge_id++);
+    back_bottom->Connect(back_left)->Connect(back_top)
+               ->Connect(back_right)->Connect(back_bottom);
+	back->edge = back_bottom;
+    m_edges.Append(back_bottom).Append(back_left)
+           .Append(back_top).Append(back_right);
+    m_faces.Append(back);
+
+	// Top face
+	auto top = new face3(m_next_face_id++);
+	auto top_left  = new edge3(left_top_back,   top, m_next_edge_id++);
+    auto top_front = new edge3(left_top_front,  top, m_next_edge_id++);
+    auto top_right = new edge3(right_top_front, top, m_next_edge_id++);
+	auto top_back  = new edge3(right_top_back,  top, m_next_edge_id++);
+    top_left->Connect(top_front)->Connect(top_right)
+            ->Connect(top_back)->Connect(top_left);
+	top->edge = top_left;
+    m_edges.Append(top_left).Append(top_front)
+           .Append(top_right).Append(top_back);
+    m_faces.Append(top);
+
+	// Right face
+	auto right = new face3(m_next_face_id++);
+	auto right_front  = new edge3(right_top_front,    right, m_next_edge_id++);
+    auto right_bottom = new edge3(right_bottom_front, right, m_next_edge_id++);
+    auto right_back   = new edge3(right_bottom_back,  right, m_next_edge_id++);
+	auto right_top    = new edge3(right_top_back,     right, m_next_edge_id++);
+    right_front->Connect(right_bottom)->Connect(right_back)
+               ->Connect(right_top)->Connect(right_front);
+	right->edge = right_front;
+    m_edges.Append(right_front).Append(right_bottom)
+           .Append(right_back).Append(right_top);
+    m_faces.Append(right);
+
+    edge_make_pair(top_left,  left_top);
+    edge_make_pair(top_back,  back_top);
+    edge_make_pair(top_right, right_top);
+    edge_make_pair(top_front, front_top);
+
+    edge_make_pair(bottom_left,  left_bottom);
+    edge_make_pair(bottom_back,  back_bottom);
+    edge_make_pair(bottom_right, right_bottom);
+    edge_make_pair(bottom_front, front_bottom);
+
+    edge_make_pair(front_left,  left_front);
+    edge_make_pair(front_right, right_front);
+    edge_make_pair(back_left,   left_back);
+    edge_make_pair(back_right,  right_back);
+}
+
+void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
+                                const std::vector<in_face1>& faces)
+{
+    Clear();
+
+    std::vector<vert3*> v_array;
+    BuildVertices(verts, v_array);
+
+    std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp> map2edge;
+	for (auto& face : faces)
+	{
+        auto border_loop = BuildLoop(face.first, face.second, v_array, map2edge);
+        assert(border_loop);
+        m_faces.Append(border_loop);
+	}
+
+    make_edge_pair(map2edge);
+}
+
+void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
+                                const std::vector<in_face2>& faces)
+{
+    Clear();
+
+    std::vector<vert3*> v_array;
+    BuildVertices(verts, v_array);
+
+    std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp> map2edge;
+	for (auto& face : faces)
+	{
+        auto& id = std::get<0>(face);
+        auto& border = std::get<1>(face);
+        auto& holes = std::get<2>(face);
+
+        auto border_loop = BuildLoop(id, border, v_array, map2edge);
+        assert(border_loop);
+        m_faces.Append(border_loop);
+
+        for (auto& hole : holes)
+        {
+            auto hole_loop = BuildLoop(id, hole, v_array, map2edge);
+            assert(hole_loop);
+            m_faces.Append(hole_loop);
+        }
+	}
+
+    make_edge_pair(map2edge);
+}
+
+void Polyhedron::BuildVertices(const std::vector<in_vert>& verts, std::vector<vert3*>& v_array)
+{
+    v_array.reserve(verts.size());
+    for (auto& vert : verts)
+    {
+        m_aabb.Combine(vert.second);
+
+        TopoID topo_id;
+        if (vert.first.Empty()) {
+            topo_id = TopoID(m_next_vert_id++);
+        } else {
+            topo_id = vert.first;
+            for (auto& id : vert.first.Path()) {
+                if (id >= m_next_vert_id) {
+                    m_next_vert_id = id + 1;
+                }
+            }
+        }
+
+        auto v = new vert3(vert.second, topo_id);
+        v_array.push_back(v);
+        m_verts.Append(v);
+    }
+}
+
+face3* Polyhedron::BuildLoop(TopoID id, const std::vector<size_t>& loop, const std::vector<vert3*>& v_array,
+                             std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp>& map2edge)
+{
+    if (loop.size() <= 2) {
+        return nullptr;
+    }
+
+    TopoID topo_id;
+    if (id.Empty()) {
+        topo_id = TopoID(m_next_face_id++);
+    } else {
+        topo_id = id;
+        for (auto& id : id.Path()) {
+            if (id >= m_next_face_id) {
+                m_next_face_id = id + 1;
+            }
+        }
+    }
+
+	auto face = new face3(topo_id);
+
+	assert(loop.size() > 2);
+	edge3* first = nullptr;
+	edge3* last  = nullptr;
+
+	for (int i = 0, n = loop.size(); i < n; ++i)
+	{
+        auto& curr_pos = loop[i];
+        auto& next_pos = loop[(i + 1) % n];
+
+        assert(curr_pos >= 0 && curr_pos < v_array.size());
+        auto vert = v_array[curr_pos];
+		assert(vert);
+		auto edge = new edge3(vert, face, m_next_edge_id++);
+        m_edges.Append(edge);
+		if (!first) {
+			first = edge;
+		} else {
+            assert(last);
+            last->Connect(edge);
+		}
+		last = edge;
+
+        map2edge.insert({ { curr_pos, next_pos }, edge });
+	}
+	last->Connect(first);
+
+	face->edge = first;
+
+    return face;
+}
+
+}
