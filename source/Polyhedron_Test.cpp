@@ -13,18 +13,18 @@ namespace he
 
 bool Polyhedron::IsContain(const sm::vec3& pos) const
 {
-    auto first_face = m_faces.Head();
-    auto curr_face = first_face;
+    auto first_l = m_loops.Head();
+    auto curr_l = first_l;
     do {
         sm::Plane plane;
-        Utility::FaceToPlane(*curr_face, plane);
+        Utility::LoopToPlane(*curr_l, plane);
         const float dist = plane.GetDistance(pos);
         if (dist > POINT_STATUS_EPSILON) {
             return false;
         }
 
-        curr_face = curr_face->linked_next;
-    } while (curr_face != first_face);
+        curr_l = curr_l->linked_next;
+    } while (curr_l != first_l);
 
     return true;
 }

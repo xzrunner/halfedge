@@ -16,17 +16,17 @@ public:
         const DoublyLinkedList<Edge<T>>& edges, size_t& next_vert_id);
 
     template<typename T>
-    static void FlipFace(Face<T>& face);
+    static void FlipLoop(Loop<T>& loop);
     template<typename T>
-    static void FlipFace(Edge<T>& edge);
+    static void FlipLoop(Edge<T>& edge);
 
-    // face2
-    static bool IsLoopConvex(const face2& loop);
-    static bool IsLoopClockwise(const face2& loop);
+    // loop2
+    static bool IsLoopConvex(const loop2& loop);
+    static bool IsLoopClockwise(const loop2& loop);
 
-    // face3
-    static void FaceToVertices(const face3& face, std::vector<sm::vec3>& border);
-    static void FaceToPlane(const face3& face, sm::Plane& plane);
+    // loop3
+    static void LoopToVertices(const loop3& loop, std::vector<sm::vec3>& border);
+    static void LoopToPlane(const loop3& loop, sm::Plane& plane);
 
 }; // Utility
 

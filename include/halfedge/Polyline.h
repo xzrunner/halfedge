@@ -17,11 +17,11 @@ class Polyline : boost::noncopyable
 public:
     Polyline() {}
     Polyline(const Polyline& poly);
-    Polyline(const std::vector<std::pair<TopoID, sm::vec3>>& vertices,
+    Polyline(const std::vector<std::pair<TopoID, sm::vec3>>& verts,
         const std::vector<std::pair<TopoID, std::vector<size_t>>>& polylines);
     Polyline& operator = (const Polyline& poly);
 
-	auto& GetVertices() const  { return m_vertices; }
+	auto& GetVerts() const  { return m_vertices; }
     auto& GetEdges() const     { return m_edges; }
     auto& GetPolylines() const { return m_polylines; }
 
@@ -34,13 +34,13 @@ private:
 
     void Clear();
 
-    void BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>& vertices,
+    void BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>& verts,
         const std::vector<std::pair<TopoID, std::vector<size_t>>>& polylines);
 
 private:
     DoublyLinkedList<vert3> m_vertices;
     DoublyLinkedList<edge3> m_edges;
-    DoublyLinkedList<face3> m_polylines;
+    DoublyLinkedList<loop3> m_polylines;
 
     static size_t m_next_vert_id;
     static size_t m_next_edge_id;

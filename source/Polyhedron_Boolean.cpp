@@ -26,32 +26,32 @@ DoIntersect(const he::Polyhedron& poly0, const he::Polyhedron& poly1)
 
     auto ret = std::make_shared<he::Polyhedron>(poly0);
 
-    auto first_face = poly1.GetFaces().Head();
-    auto curr_face = first_face;
+    auto first_l = poly1.GetLoops().Head();
+    auto curr_l = first_l;
     do {
         sm::Plane plane;
-        he::Utility::FaceToPlane(*curr_face, plane);
+        he::Utility::LoopToPlane(*curr_l, plane);
 
         bool succ = ret->Clip(plane, he::Polyhedron::KeepType::KeepBelow, true);
-        if (ret->GetFaces().Size() == 0) {
+        if (ret->GetLoops().Size() == 0) {
             return ret;
         }
 
-        curr_face = curr_face->linked_next;
-    } while (curr_face != first_face);
+        curr_l = curr_l->linked_next;
+    } while (curr_l != first_l);
 
     return ret;
 }
 
 void DoSubtract(std::vector<he::PolyhedronPtr>& result, const std::vector<he::PolyhedronPtr>& fragments,
-                const he::face3* curr_face, const he::face3* first_face)
+                const he::loop3* curr_l, const he::loop3* first_l)
 {
     if (fragments.empty()) {
         return;
     }
 
     sm::Plane plane;
-    he::Utility::FaceToPlane(*curr_face, plane);
+    he::Utility::LoopToPlane(*curr_l, plane);
 
     std::vector<he::PolyhedronPtr> back_frags;
 
@@ -68,9 +68,9 @@ void DoSubtract(std::vector<he::PolyhedronPtr>& result, const std::vector<he::Po
         }
     }
 
-    curr_face = curr_face->linked_next;
-    if (curr_face != first_face) {
-        DoSubtract(result, back_frags, curr_face, first_face);
+    curr_l = curr_l->linked_next;
+    if (curr_l != first_l) {
+        DoSubtract(result, back_frags, curr_l, first_l);
     }
 }
 
@@ -81,7 +81,7 @@ namespace he
 
 PolyhedronPtr Polyhedron::Union(const Polyhedron& other) const
 {
-    if (m_faces.Size() <= 3 || other.m_faces.Size() <= 3) {
+    if (m_loops.Size() <= 3 || other.m_loops.Size() <= 3) {
         return nullptr;
     }
 
@@ -90,7 +90,7 @@ PolyhedronPtr Polyhedron::Union(const Polyhedron& other) const
 
 PolyhedronPtr Polyhedron::Intersect(const Polyhedron& other) const
 {
-    if (m_faces.Size() <= 3 || other.m_faces.Size() <= 3) {
+    if (m_loops.Size() <= 3 || other.m_loops.Size() <= 3) {
         return nullptr;
     }
 
@@ -110,8 +110,8 @@ PolyhedronPtr Polyhedron::Intersect(const Polyhedron& other) const
 std::vector<PolyhedronPtr> Polyhedron::Subtract(const Polyhedron& subtrahend) const
 {
     std::vector<PolyhedronPtr> ret;
-    auto first_face = subtrahend.GetFaces().Head();
-    DoSubtract(ret, { std::make_shared<Polyhedron>(*this) }, first_face, first_face);
+    auto first_l = subtrahend.GetLoops().Head();
+    DoSubtract(ret, { std::make_shared<Polyhedron>(*this) }, first_l, first_l);
 
 //    return { Fuse(ret) };
     return ret;

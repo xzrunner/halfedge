@@ -21,13 +21,13 @@ void edge_make_pair(Edge<T>* e0, Edge<T>* e1)
 }
 
 template<typename T>
-void bind_edge_face(Face<T>* face, Edge<T>* edge)
+void bind_edge_loop(Loop<T>* loop, Edge<T>* edge)
 {
-    face->edge = edge;
+    loop->edge = edge;
 
     auto curr_edge = edge;
     do {
-        curr_edge->face = face;
+        curr_edge->loop = loop;
         curr_edge = curr_edge->next;
     } while (curr_edge != edge);
 }

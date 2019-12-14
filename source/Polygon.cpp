@@ -17,22 +17,22 @@ Polygon::Polygon(const Polygon& poly)
     this->operator = (poly);
 }
 
-Polygon::Polygon(const std::vector<std::pair<TopoID, sm::vec2>>& vertices,
-                 const std::vector<std::pair<TopoID, std::vector<size_t>>>& faces,
+Polygon::Polygon(const std::vector<std::pair<TopoID, sm::vec2>>& verts,
+                 const std::vector<std::pair<TopoID, std::vector<size_t>>>& borders,
                  const std::vector<std::pair<TopoID, std::vector<size_t>>>& holes)
 {
-    BuildFromLoops(vertices, faces, holes);
+    BuildFromLoops(verts, borders, holes);
 }
 
 Polygon& Polygon::operator = (const Polygon& poly)
 {
     std::map<vert2*, size_t> vert2idx;
-    auto vertices = DumpVertices(poly.m_verts, vert2idx);
+    auto verts = DumpVertices(poly.m_verts, vert2idx);
 
-    auto borders = DumpFaces(poly.m_borders, vert2idx);
-    auto holes = DumpFaces(poly.m_holes, vert2idx);
+    auto borders = DumpLoops(poly.m_borders, vert2idx);
+    auto holes = DumpLoops(poly.m_holes, vert2idx);
 
-    BuildFromLoops(vertices, borders, holes);
+    BuildFromLoops(verts, borders, holes);
 
 //    OffsetTopoID(m_next_vert_id, m_next_edge_id, m_next_loop_id);
 
@@ -51,15 +51,15 @@ void Polygon::Clear()
     m_holes.Clear();
 }
 
-void Polygon::BuildFromLoops(const std::vector<std::pair<TopoID, sm::vec2>>& vertices,
+void Polygon::BuildFromLoops(const std::vector<std::pair<TopoID, sm::vec2>>& verts,
                              const std::vector<std::pair<TopoID, std::vector<size_t>>>& borders,
                              const std::vector<std::pair<TopoID, std::vector<size_t>>>& holes)
 {
     Clear();
 
     std::vector<vert2*> v_array;
-    v_array.reserve(vertices.size());
-    for (auto& vert : vertices)
+    v_array.reserve(verts.size());
+    for (auto& vert : verts)
     {
         TopoID topo_id;
         if (vert.first.Empty()) {
@@ -82,7 +82,7 @@ void Polygon::BuildFromLoops(const std::vector<std::pair<TopoID, sm::vec2>>& ver
 	{
         auto loop = CreateLoop(v_array, border);
         if (Utility::IsLoopClockwise(*loop)) {
-            Utility::FlipFace(*loop);
+            Utility::FlipLoop(*loop);
         }
         m_borders.Append(loop);
 	}
@@ -91,13 +91,13 @@ void Polygon::BuildFromLoops(const std::vector<std::pair<TopoID, sm::vec2>>& ver
     {
         auto loop = CreateLoop(v_array, hole);
         if (!Utility::IsLoopClockwise(*loop)) {
-            Utility::FlipFace(*loop);
+            Utility::FlipLoop(*loop);
         }
         m_holes.Append(loop);
     }
 }
 
-face2* Polygon::CreateLoop(const std::vector<vert2*>& verts, const std::pair<TopoID, std::vector<size_t>>& loop)
+loop2* Polygon::CreateLoop(const std::vector<vert2*>& verts, const std::pair<TopoID, std::vector<size_t>>& loop)
 {
     if (loop.second.size() <= 2) {
         return nullptr;
@@ -115,7 +115,7 @@ face2* Polygon::CreateLoop(const std::vector<vert2*>& verts, const std::pair<Top
         }
     }
 
-	auto face = new face2(topo_id);
+	auto ret = new loop2(topo_id);
 
 	assert(loop.second.size() >= 2);
 	edge2* first = nullptr;
@@ -128,7 +128,7 @@ face2* Polygon::CreateLoop(const std::vector<vert2*>& verts, const std::pair<Top
         assert(curr_pos >= 0 && curr_pos < verts.size());
         auto vert = verts[curr_pos];
 		assert(vert);
-		auto edge = new edge2(vert, face, m_next_edge_id++);
+		auto edge = new edge2(vert, ret, m_next_edge_id++);
         m_edges.Append(edge);
 		if (!first) {
 			first = edge;
@@ -140,57 +140,57 @@ face2* Polygon::CreateLoop(const std::vector<vert2*>& verts, const std::pair<Top
 	}
 	last->Connect(first);
 
-	face->edge = first;
+    ret->edge = first;
 
-    return face;
+    return ret;
 }
 
 std::vector<std::pair<TopoID, sm::vec2>>
 Polygon::DumpVertices(const DoublyLinkedList<vert2>& verts, std::map<vert2*, size_t>& vert2idx)
 {
-    std::vector<std::pair<TopoID, sm::vec2>> vertices;
-    vertices.reserve(verts.Size());
+    std::vector<std::pair<TopoID, sm::vec2>> ret;
+    ret.reserve(verts.Size());
 
     auto first_v = verts.Head();
     auto curr_v = first_v;
     size_t idx = 0;
     do {
-        vertices.push_back({ curr_v->ids, curr_v->position });
+        ret.push_back({ curr_v->ids, curr_v->position });
         vert2idx.insert({ curr_v, idx++ });
 
         curr_v = curr_v->linked_next;
     } while (curr_v != first_v);
 
-    return vertices;
+    return ret;
 }
 
 std::vector<std::pair<TopoID, std::vector<size_t>>>
-Polygon::DumpFaces(const DoublyLinkedList<face2>& src_faces, const std::map<vert2*, size_t>& vert2idx)
+Polygon::DumpLoops(const DoublyLinkedList<loop2>& loops, const std::map<vert2*, size_t>& vert2idx)
 {
-    std::vector<std::pair<TopoID, std::vector<size_t>>> faces;
-    faces.reserve(src_faces.Size());
+    std::vector<std::pair<TopoID, std::vector<size_t>>> ret;
+    ret.reserve(loops.Size());
 
-    auto first_f = src_faces.Head();
-    auto curr_f = first_f;
+    auto first_l = loops.Head();
+    auto curr_l = first_l;
     do {
-        std::vector<size_t> face;
+        std::vector<size_t> loop;
 
-        auto first_e = curr_f->edge;
+        auto first_e = curr_l->edge;
         auto curr_e = first_e;
         do {
             auto itr = vert2idx.find(curr_e->vert);
             assert(itr != vert2idx.end());
-            face.push_back(itr->second);
+            loop.push_back(itr->second);
 
             curr_e = curr_e->next;
         } while (curr_e && curr_e != first_e);
 
-        faces.push_back({ curr_f->ids, face });
+        ret.push_back({ curr_l->ids, loop });
 
-        curr_f = curr_f->linked_next;
-    } while (curr_f != first_f);
+        curr_l = curr_l->linked_next;
+    } while (curr_l != first_l);
 
-    return faces;
+    return ret;
 }
 
 }

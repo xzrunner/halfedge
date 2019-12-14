@@ -51,7 +51,7 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
               .Append(right_bottom_front).Append(right_bottom_back).Append(right_top_front).Append(right_top_back);
 
 	// Bottom face
-	auto bottom = new face3(m_next_face_id++);
+	auto bottom = new loop3(m_next_loop_id++);
 	auto bottom_left  = new edge3(left_bottom_front,  bottom, m_next_edge_id++);
 	auto bottom_back  = new edge3(left_bottom_back,   bottom, m_next_edge_id++);
 	auto bottom_right = new edge3(right_bottom_back,  bottom, m_next_edge_id++);
@@ -61,10 +61,10 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
 	bottom->edge = bottom_left;
     m_edges.Append(bottom_left).Append(bottom_back)
            .Append(bottom_right).Append(bottom_front);
-	m_faces.Append(bottom);
+	m_loops.Append(bottom);
 
 	// Left face
-	auto left = new face3(m_next_face_id++);
+	auto left = new loop3(m_next_loop_id++);
 	auto left_bottom = new edge3(left_bottom_back,  left, m_next_edge_id++);
     auto left_front  = new edge3(left_bottom_front, left, m_next_edge_id++);
     auto left_top    = new edge3(left_top_front,    left, m_next_edge_id++);
@@ -74,10 +74,10 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
 	left->edge = left_bottom;
     m_edges.Append(left_bottom).Append(left_front)
            .Append(left_top).Append(left_back);
-    m_faces.Append(left);
+    m_loops.Append(left);
 
 	// Front face
-	auto front = new face3(m_next_face_id++);
+	auto front = new loop3(m_next_loop_id++);
 	auto front_left   = new edge3(left_top_front,     front, m_next_edge_id++);
     auto front_bottom = new edge3(left_bottom_front,  front, m_next_edge_id++);
     auto front_right  = new edge3(right_bottom_front, front, m_next_edge_id++);
@@ -87,10 +87,10 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
 	front->edge = front_left;
     m_edges.Append(front_left).Append(front_bottom)
            .Append(front_right).Append(front_top);
-    m_faces.Append(front);
+    m_loops.Append(front);
 
 	// Back face
-	auto back = new face3(m_next_face_id++);
+	auto back = new loop3(m_next_loop_id++);
 	auto back_bottom = new edge3(right_bottom_back, back, m_next_edge_id++);
     auto back_left   = new edge3(left_bottom_back,  back, m_next_edge_id++);
     auto back_top    = new edge3(left_top_back,     back, m_next_edge_id++);
@@ -100,10 +100,10 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
 	back->edge = back_bottom;
     m_edges.Append(back_bottom).Append(back_left)
            .Append(back_top).Append(back_right);
-    m_faces.Append(back);
+    m_loops.Append(back);
 
 	// Top face
-	auto top = new face3(m_next_face_id++);
+	auto top = new loop3(m_next_loop_id++);
 	auto top_left  = new edge3(left_top_back,   top, m_next_edge_id++);
     auto top_front = new edge3(left_top_front,  top, m_next_edge_id++);
     auto top_right = new edge3(right_top_front, top, m_next_edge_id++);
@@ -113,10 +113,10 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
 	top->edge = top_left;
     m_edges.Append(top_left).Append(top_front)
            .Append(top_right).Append(top_back);
-    m_faces.Append(top);
+    m_loops.Append(top);
 
 	// Right face
-	auto right = new face3(m_next_face_id++);
+	auto right = new loop3(m_next_loop_id++);
 	auto right_front  = new edge3(right_top_front,    right, m_next_edge_id++);
     auto right_bottom = new edge3(right_bottom_front, right, m_next_edge_id++);
     auto right_back   = new edge3(right_bottom_back,  right, m_next_edge_id++);
@@ -126,7 +126,7 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
 	right->edge = right_front;
     m_edges.Append(right_front).Append(right_bottom)
            .Append(right_back).Append(right_top);
-    m_faces.Append(right);
+    m_loops.Append(right);
 
     edge_make_pair(top_left,  left_top);
     edge_make_pair(top_back,  back_top);
@@ -145,7 +145,7 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
 }
 
 void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
-                                const std::vector<in_face1>& faces)
+                                const std::vector<in_face_no_hole>& faces)
 {
     Clear();
 
@@ -157,14 +157,14 @@ void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
 	{
         auto border_loop = BuildLoop(face.first, face.second, v_array, map2edge);
         assert(border_loop);
-        m_faces.Append(border_loop);
+        m_loops.Append(border_loop);
 	}
 
     make_edge_pair(map2edge);
 }
 
 void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
-                                const std::vector<in_face2>& faces)
+                                const std::vector<in_face_with_hole>& faces)
 {
     Clear();
 
@@ -174,19 +174,19 @@ void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
     std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp> map2edge;
 	for (auto& face : faces)
 	{
-        auto& id = std::get<0>(face);
+        auto& id     = std::get<0>(face);
         auto& border = std::get<1>(face);
-        auto& holes = std::get<2>(face);
+        auto& holes  = std::get<2>(face);
 
         auto border_loop = BuildLoop(id, border, v_array, map2edge);
         assert(border_loop);
-        m_faces.Append(border_loop);
+        m_loops.Append(border_loop);
 
         for (auto& hole : holes)
         {
             auto hole_loop = BuildLoop(id, hole, v_array, map2edge);
             assert(hole_loop);
-            m_faces.Append(hole_loop);
+            m_loops.Append(hole_loop);
         }
 	}
 
@@ -218,7 +218,7 @@ void Polyhedron::BuildVertices(const std::vector<in_vert>& verts, std::vector<ve
     }
 }
 
-face3* Polyhedron::BuildLoop(TopoID id, const std::vector<size_t>& loop, const std::vector<vert3*>& v_array,
+loop3* Polyhedron::BuildLoop(TopoID id, const std::vector<size_t>& loop, const std::vector<vert3*>& v_array,
                              std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp>& map2edge)
 {
     if (loop.size() <= 2) {
@@ -227,17 +227,17 @@ face3* Polyhedron::BuildLoop(TopoID id, const std::vector<size_t>& loop, const s
 
     TopoID topo_id;
     if (id.Empty()) {
-        topo_id = TopoID(m_next_face_id++);
+        topo_id = TopoID(m_next_loop_id++);
     } else {
         topo_id = id;
         for (auto& id : id.Path()) {
-            if (id >= m_next_face_id) {
-                m_next_face_id = id + 1;
+            if (id >= m_next_loop_id) {
+                m_next_loop_id = id + 1;
             }
         }
     }
 
-	auto face = new face3(topo_id);
+	auto ret = new loop3(topo_id);
 
 	assert(loop.size() > 2);
 	edge3* first = nullptr;
@@ -251,7 +251,7 @@ face3* Polyhedron::BuildLoop(TopoID id, const std::vector<size_t>& loop, const s
         assert(curr_pos >= 0 && curr_pos < v_array.size());
         auto vert = v_array[curr_pos];
 		assert(vert);
-		auto edge = new edge3(vert, face, m_next_edge_id++);
+		auto edge = new edge3(vert, ret, m_next_edge_id++);
         m_edges.Append(edge);
 		if (!first) {
 			first = edge;
@@ -265,9 +265,9 @@ face3* Polyhedron::BuildLoop(TopoID id, const std::vector<size_t>& loop, const s
 	}
 	last->Connect(first);
 
-	face->edge = first;
+	ret->edge = first;
 
-    return face;
+    return ret;
 }
 
 }

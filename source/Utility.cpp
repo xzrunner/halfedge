@@ -7,11 +7,11 @@
 namespace
 {
 
-std::vector<sm::vec2> dump_vertices(const he::face2& face)
+std::vector<sm::vec2> dump_vertices(const he::loop2& loop)
 {
     std::vector<sm::vec2> verts;
 
-    auto first_e = face.edge;
+    auto first_e = loop.edge;
     auto curr_e = first_e;
     do {
         verts.push_back(curr_e->vert->position);
@@ -26,19 +26,19 @@ std::vector<sm::vec2> dump_vertices(const he::face2& face)
 namespace he
 {
 
-bool Utility::IsLoopConvex(const face2& loop)
+bool Utility::IsLoopConvex(const loop2& loop)
 {
     return sm::is_polygon_convex(dump_vertices(loop));
 }
 
-bool Utility::IsLoopClockwise(const face2& loop)
+bool Utility::IsLoopClockwise(const loop2& loop)
 {
     return sm::is_polygon_clockwise(dump_vertices(loop));
 }
 
-void Utility::FaceToVertices(const face3& face, std::vector<sm::vec3>& border)
+void Utility::LoopToVertices(const loop3& loop, std::vector<sm::vec3>& border)
 {
-    auto first_edge = face.edge;
+    auto first_edge = loop.edge;
     auto curr_edge = first_edge;
     do {
         border.push_back(curr_edge->vert->position);
@@ -46,9 +46,9 @@ void Utility::FaceToVertices(const face3& face, std::vector<sm::vec3>& border)
     } while (curr_edge != first_edge);
 }
 
-void Utility::FaceToPlane(const face3& face, sm::Plane& plane)
+void Utility::LoopToPlane(const loop3& loop, sm::Plane& plane)
 {
-    auto curr_edge = face.edge;
+    auto curr_edge = loop.edge;
     auto first_edge = curr_edge;
     do {
         auto& v0 = curr_edge->vert->position;

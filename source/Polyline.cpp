@@ -17,16 +17,16 @@ Polyline::Polyline(const Polyline& poly)
     this->operator = (poly);
 }
 
-Polyline::Polyline(const std::vector<std::pair<TopoID, sm::vec3>>& vertices,
+Polyline::Polyline(const std::vector<std::pair<TopoID, sm::vec3>>& verts,
                    const std::vector<std::pair<TopoID, std::vector<size_t>>>& polylines)
 {
-    BuildFromPolylines(vertices, polylines);
+    BuildFromPolylines(verts, polylines);
 }
 
 Polyline& Polyline::operator = (const Polyline& poly)
 {
-    std::vector<std::pair<TopoID, sm::vec3>> vertices;
-    vertices.reserve(poly.m_vertices.Size());
+    std::vector<std::pair<TopoID, sm::vec3>> verts;
+    verts.reserve(poly.m_vertices.Size());
 
     std::map<vert3*, size_t> vert2idx;
 
@@ -38,7 +38,7 @@ Polyline& Polyline::operator = (const Polyline& poly)
     auto v = v_head;
     size_t idx = 0;
     do {
-        vertices.push_back({ v->ids, v->position });
+        verts.push_back({ v->ids, v->position });
         vert2idx.insert({ v, idx++ });
         v = v->linked_next;
     } while (v != v_head);
@@ -52,23 +52,23 @@ Polyline& Polyline::operator = (const Polyline& poly)
     }
     auto l = l_head;
     do {
-        std::vector<size_t> face;
+        std::vector<size_t> polyline;
 
         auto e_head = l->edge;
         auto e = e_head;
         do {
             auto itr = vert2idx.find(e->vert);
             assert(itr != vert2idx.end());
-            face.push_back(itr->second);
+            polyline.push_back(itr->second);
             e = e->next;
         } while (e && e != e_head);
 
-        polylines.push_back({ l->ids, face });
+        polylines.push_back({ l->ids, polyline });
 
         l = l->linked_next;
     } while (l != l_head);
 
-    BuildFromPolylines(vertices, polylines);
+    BuildFromPolylines(verts, polylines);
 
 //    OffsetTopoID(m_next_vert_id, m_next_edge_id, m_next_polyline_id);
 
@@ -217,14 +217,14 @@ void Polyline::Clear()
     m_polylines.Clear();
 }
 
-void Polyline::BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>& vertices,
+void Polyline::BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>& verts,
                                   const std::vector<std::pair<TopoID, std::vector<size_t>>>& polylines)
 {
     Clear();
 
     std::vector<vert3*> v_array;
-    v_array.reserve(vertices.size());
-    for (auto& vert : vertices)
+    v_array.reserve(verts.size());
+    for (auto& vert : verts)
     {
         TopoID topo_id;
         if (vert.first.Empty()) {
@@ -261,7 +261,7 @@ void Polyline::BuildFromPolylines(const std::vector<std::pair<TopoID, sm::vec3>>
             }
         }
 
-		auto polyline = new face3(topo_id);
+		auto polyline = new loop3(topo_id);
 
 		assert(src_polyline.second.size() >= 2);
 		edge3* first = nullptr;

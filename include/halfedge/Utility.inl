@@ -32,15 +32,15 @@ void Utility::UniquePoints(DoublyLinkedList<Vertex<T>>& vts,
 }
 
 template<typename T>
-void Utility::FlipFace(Face<T>& face)
+void Utility::FlipLoop(Loop<T>& loop)
 {
-    if (face.edge) {
-        FlipFace(*face.edge);
+    if (loop.edge) {
+        FlipLoop(*loop.edge);
     }
 }
 
 template<typename T>
-void Utility::FlipFace(Edge<T>& edge)
+void Utility::FlipLoop(Edge<T>& edge)
 {
     std::vector<Edge<T>*> edges;
 

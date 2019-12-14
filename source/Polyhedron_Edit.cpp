@@ -12,7 +12,7 @@ void BuildMapVert2Edges(const he::Polyhedron& src, std::vector<std::pair<he::ver
 {
     std::map<he::vert3*, size_t> vert2idx;
 
-    auto vert_first = src.GetVertices().Head();
+    auto vert_first = src.GetVerts().Head();
     auto vert_curr = vert_first;
     size_t idx = 0;
     do {
@@ -35,21 +35,21 @@ void BuildMapVert2Edges(const he::Polyhedron& src, std::vector<std::pair<he::ver
 void BuildMapVert2Planes(const he::Polyhedron& src, std::vector<sm::Plane>& planes,
                          std::map<he::vert3*, std::vector<size_t>>& dst)
 {
-    auto first_face = src.GetFaces().Head();
-    auto curr_face = first_face;
+    auto first_l = src.GetLoops().Head();
+    auto curr_l = first_l;
     do {
         sm::Plane plane;
-        he::Utility::FaceToPlane(*curr_face, plane);
+        he::Utility::LoopToPlane(*curr_l, plane);
         planes.push_back(plane);
 
-        curr_face = curr_face->linked_next;
-    } while (curr_face != first_face);
+        curr_l = curr_l->linked_next;
+    } while (curr_l != first_l);
 
     size_t plane_idx = 0;
-    first_face = src.GetFaces().Head();
-    curr_face = first_face;
+    first_l = src.GetLoops().Head();
+    curr_l = first_l;
     do {
-        auto first_edge = curr_face->edge;
+        auto first_edge = curr_l->edge;
         auto curr_edge = first_edge;
         do {
             auto itr = dst.find(curr_edge->vert);
@@ -63,8 +63,8 @@ void BuildMapVert2Planes(const he::Polyhedron& src, std::vector<sm::Plane>& plan
         } while (curr_edge != first_edge);
 
         ++plane_idx;
-        curr_face = curr_face->linked_next;
-    } while (curr_face != first_face);
+        curr_l = curr_l->linked_next;
+    } while (curr_l != first_l);
 }
 
 }
@@ -95,16 +95,16 @@ void Polyhedron::Fill()
     for (auto itr = new_edges.begin(); itr != new_edges.end(); ++itr)
     {
         edge3* edge = itr->second;
-        if (edge->face) {
+        if (edge->loop) {
             continue;
         }
 
-        auto face = new face3(m_next_face_id++);
+        auto face = new loop3(m_next_loop_id++);
         face->edge = edge;
 
         vert3* first = edge->vert;
         do {
-            edge->face = face;
+            edge->loop = face;
 
             auto itr = new_edges.find(edge->twin->vert);
             assert(itr != new_edges.end());
@@ -114,7 +114,7 @@ void Polyhedron::Fill()
             edge = next_edge;
         } while (edge->vert != first);
 
-        m_faces.Append(face);
+        m_loops.Append(face);
     }
 }
 
@@ -163,30 +163,30 @@ void Polyhedron::Fuse(float distance)
 
 PolyhedronPtr Polyhedron::Fuse(const std::vector<PolyhedronPtr>& polys, float distance)
 {
-    std::vector<std::pair<TopoID, sm::vec3>> vertices;
+    std::vector<std::pair<TopoID, sm::vec3>> verts;
     std::vector<std::pair<TopoID, std::vector<size_t>>> faces;
 
     std::map<size_t, size_t> vert_uid2pos;
     for (auto& poly : polys)
     {
-        auto first_vert = poly->GetVertices().Head();
+        auto first_vert = poly->GetVerts().Head();
         auto curr_vert = first_vert;
         do {
-            auto ret = vert_uid2pos.insert({ curr_vert->ids.UID(), vertices.size() });
+            auto ret = vert_uid2pos.insert({ curr_vert->ids.UID(), verts.size() });
             assert(ret.second);
-            vertices.push_back({ curr_vert->ids, curr_vert->position });
+            verts.push_back({ curr_vert->ids, curr_vert->position });
             curr_vert = curr_vert->linked_next;
         } while (curr_vert != first_vert);
     }
 
     for (auto& poly : polys)
     {
-        auto first_face = poly->GetFaces().Head();
-        auto curr_face = first_face;
+        auto first_l = poly->GetLoops().Head();
+        auto curr_l = first_l;
         do {
             std::vector<size_t> face;
 
-            auto first_edge = curr_face->edge;
+            auto first_edge = curr_l->edge;
             auto curr_edge = first_edge;
             do {
                 auto itr = vert_uid2pos.find(curr_edge->vert->ids.UID());
@@ -196,13 +196,13 @@ PolyhedronPtr Polyhedron::Fuse(const std::vector<PolyhedronPtr>& polys, float di
                 curr_edge = curr_edge->next;
             } while (curr_edge != first_edge);
 
-            faces.push_back({ curr_face->ids, face });
+            faces.push_back({ curr_l->ids, face });
 
-            curr_face = curr_face->linked_next;
-        } while (curr_face != first_face);
+            curr_l = curr_l->linked_next;
+        } while (curr_l != first_l);
     }
 
-    auto ret = std::make_shared<Polyhedron>(vertices, faces);
+    auto ret = std::make_shared<Polyhedron>(verts, faces);
     ret->Fuse(distance);
     return ret;
 }
@@ -213,7 +213,7 @@ void Polyhedron::UniquePoints()
 }
 
 bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bool create_face[ExtrudeMaxCount],
-                         std::vector<face3*>* new_faces)
+                         std::vector<loop3*>* new_faces)
 {
     if (distance == 0) {
         return false;
@@ -227,21 +227,21 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
     std::map<he::vert3*, std::vector<size_t>> vert2planes;
     BuildMapVert2Planes(*this, planes, vert2planes);
 
-    std::vector<face3*> old_front_faces;
+    std::vector<loop3*> old_front_faces;
 
     std::vector<vert3*> new_vts;
     std::map<vert3*, vert3*> vert_old2new;
 
-    std::vector<face3*> new_front_faces;
+    std::vector<loop3*> new_front_faces;
     std::vector<std::vector<edge3*>> new_front_edges;
 
     size_t plane_idx = 0;
-    auto first_face = m_faces.Head();
-    auto curr_face = first_face;
+    auto first_l = m_loops.Head();
+    auto curr_l = first_l;
     do {
         bool find = false;
         for (auto& id : face_ids) {
-            if (id == curr_face->ids) {
+            if (id == curr_l->ids) {
                 find = true;
                 break;
             }
@@ -251,14 +251,14 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
         {
             planes[plane_idx].dist -= distance;
 
-            old_front_faces.push_back(curr_face);
+            old_front_faces.push_back(curr_l);
 
-            auto new_face = new face3(m_next_face_id++);
+            auto new_face = new loop3(m_next_loop_id++);
             new_front_faces.push_back(new_face);
 
             std::vector<edge3*> new_edges;
 
-            auto first_edge = curr_face->edge;
+            auto first_edge = curr_l->edge;
             auto curr_edge = first_edge;
             do {
                 vert3* new_v = nullptr;
@@ -288,8 +288,8 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
         }
 
         ++plane_idx;
-        curr_face = curr_face->linked_next;
-    } while (curr_face != first_face);
+        curr_l = curr_l->linked_next;
+    } while (curr_l != first_l);
 
     assert(old_front_faces.size() == new_front_faces.size()
         && new_front_faces.size() == new_front_edges.size());
@@ -301,7 +301,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
         }
     }
 
-    // offset vertices
+    // offset verts
     for (auto itr : vert_old2new)
     {
         auto itr_planes = vert2planes.find(itr.first);
@@ -356,7 +356,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
     // use new front faces
     if (add_front) {
         for (auto& f : new_front_faces) {
-            m_faces.Append(f);
+            m_loops.Append(f);
         }
     } else {
         for (auto& f : new_front_faces) {
@@ -380,7 +380,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
 
     // create side faces
     std::vector<std::vector<std::vector<edge3*>>> new_side_edges;
-    std::vector<std::vector<face3*>> new_side_faces;
+    std::vector<std::vector<loop3*>> new_side_faces;
     if (add_side)
     {
         assert(old_front_faces.size() == new_front_faces.size()
@@ -391,7 +391,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
         for (size_t i = 0, n = new_front_edges.size(); i < n; ++i) {
             new_side_faces[i].resize(new_front_edges[i].size());
             for (size_t j = 0, m = new_front_edges[i].size(); j < m; ++j) {
-                new_side_faces[i][j] = new face3(m_next_face_id++);
+                new_side_faces[i][j] = new loop3(m_next_loop_id++);
             }
         }
 
@@ -478,7 +478,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
                 }
                 else
                 {
-                    m_faces.Append(new_side_faces[i][edge_idx]);
+                    m_loops.Append(new_side_faces[i][edge_idx]);
                     for (auto& e : new_side_edges[i][edge_idx]) {
                         m_edges.Append(e);
                     }
@@ -500,7 +500,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
     }
 
     // create back faces
-    std::vector<face3*> new_back_faces;
+    std::vector<loop3*> new_back_faces;
     std::vector<std::vector<edge3*>> new_back_edges;
     new_back_edges.resize(old_front_faces.size());
     if (add_back)
@@ -509,7 +509,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
         {
             auto& old_f = old_front_faces[i];
 
-            auto new_f = new face3(m_next_face_id++);
+            auto new_f = new loop3(m_next_loop_id++);
             new_back_faces.push_back(new_f);
 
             auto first_edge = old_f->edge;
@@ -529,7 +529,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
 
             new_f->edge = new_back_edges[i].front();
 
-            m_faces.Append(new_f);
+            m_loops.Append(new_f);
         }
     }
 
@@ -583,9 +583,9 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
     return true;
 }
 
-void Polyhedron::RemoveFace(face3* face)
+void Polyhedron::RemoveFace(loop3* face)
 {
-    m_faces.Remove(face);
+    m_loops.Remove(face);
 
     std::vector<std::pair<he::vert3*, std::vector<he::edge3*>>> vert2edges;
     BuildMapVert2Edges(*this, vert2edges);

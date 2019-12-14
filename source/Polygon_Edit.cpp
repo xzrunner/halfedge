@@ -7,18 +7,18 @@
 namespace
 {
 
-he::edge2* create_loop(const std::vector<sm::vec2>& verts, he::face2* face,
-                       he::DoublyLinkedList<he::vert2>& vertices,
+he::edge2* create_loop(const std::vector<sm::vec2>& new_pos, he::loop2* loop,
+                       he::DoublyLinkedList<he::vert2>& verts,
                        he::DoublyLinkedList<he::edge2>& edges,
                        size_t& next_vert_id, size_t& next_edge_id)
 {
     he::edge2* ret = nullptr;
 
     he::edge2* prev_edge = nullptr;
-    for (size_t i = 0, n = verts.size(); i < n; ++i)
+    for (size_t i = 0, n = new_pos.size(); i < n; ++i)
     {
-        auto vert = new he::vert2(verts[i], next_vert_id++);
-        auto edge = new he::edge2(vert, face, next_edge_id++);
+        auto vert = new he::vert2(new_pos[i], next_vert_id++);
+        auto edge = new he::edge2(vert, loop, next_edge_id++);
         if (prev_edge) {
             prev_edge->Connect(edge);
         } else {
@@ -32,17 +32,17 @@ he::edge2* create_loop(const std::vector<sm::vec2>& verts, he::face2* face,
     return ret;
 }
 
-he::edge2* clone_loop(const he::face2* old_face, he::face2* new_face,
-                      he::DoublyLinkedList<he::vert2>& vertices, he::DoublyLinkedList<he::edge2>& edges,
+he::edge2* clone_loop(const he::loop2* old_loop, he::loop2* new_loop,
+                      he::DoublyLinkedList<he::vert2>& verts, he::DoublyLinkedList<he::edge2>& edges,
                       size_t& next_vert_id, size_t& next_edge_id)
 {
     he::edge2* ret = nullptr;
 
     he::edge2* prev_edge = nullptr;
-    auto first_e = old_face->edge;
+    auto first_e = old_loop->edge;
     auto curr_e = first_e;
     do {
-        auto edge = new he::edge2(curr_e->vert, new_face, next_edge_id++);
+        auto edge = new he::edge2(curr_e->vert, new_loop, next_edge_id++);
         if (prev_edge) {
             prev_edge->Connect(edge);
         } else {
@@ -58,15 +58,15 @@ he::edge2* clone_loop(const he::face2* old_face, he::face2* new_face,
     return ret;
 }
 
-void seam_loops(he::edge2* inner, he::edge2* outer, he::face2* face,
+void seam_loops(he::edge2* inner, he::edge2* outer, he::loop2* loop,
                 he::DoublyLinkedList<he::edge2>& edges, size_t& next_edge_id)
 {
     auto inner_next = inner->next;
     auto outer_prev = outer->prev;
 
-    auto seam_in2out = new he::edge2(inner->vert, face, next_edge_id++);
+    auto seam_in2out = new he::edge2(inner->vert, loop, next_edge_id++);
     inner->prev->Connect(seam_in2out)->Connect(outer);
-    auto seam_out2in = new he::edge2(outer->vert, face, next_edge_id++);
+    auto seam_out2in = new he::edge2(outer->vert, loop, next_edge_id++);
     outer_prev->Connect(seam_out2in)->Connect(inner);
 
     he::edge_make_pair(seam_in2out, seam_out2in);
@@ -155,12 +155,12 @@ namespace he
 //
 //    // calc new border
 //    std::vector<std::vector<sm::vec2>> new_loops;
-//    auto first_f = m_faces.Head();
-//    auto curr_f = first_f;
+//    auto first_l = m_loops.Head();
+//    auto curr_l = first_l;
 //    do {
 //        std::vector<sm::vec2> new_loop;
 //
-//        auto first_e = curr_f->edge;
+//        auto first_e = curr_l->edge;
 //        auto curr_e = first_e;
 //        do {
 //            auto curr = curr_e->vert;
@@ -176,18 +176,18 @@ namespace he
 //
 //        new_loops.push_back(new_loop);
 //
-//        curr_f = curr_f->linked_next;
-//    } while (curr_f != first_f);
+//        curr_l = curr_l->linked_next;
+//    } while (curr_l != first_l);
 //
 //    if (distance < 0 && keep == KeepType::KeepInside)
 //    {
 //        size_t ptr = 0;
-//        auto first_f = m_faces.Head();
-//        auto curr_f = first_f;
+//        auto first_l = m_loops.Head();
+//        auto curr_l = first_l;
 //        do {
-//            set_loop_pos(curr_f->edge, new_loops[ptr++]);
-//            curr_f = curr_f->linked_next;
-//        } while (curr_f != first_f);
+//            set_loop_pos(curr_l->edge, new_loops[ptr++]);
+//            curr_l = curr_l->linked_next;
+//        } while (curr_l != first_l);
 //
 //        return true;
 //    }
@@ -197,41 +197,41 @@ namespace he
 //        if (keep == KeepType::KeepBorder)
 //        {
 //            size_t ptr_face = 0;
-//            auto first_f = m_faces.Head();
-//            auto curr_f = first_f;
+//            auto first_l = m_loops.Head();
+//            auto curr_l = first_l;
 //            do {
 //                // inner
-//                auto new_in = curr_f->edge;
-//                Utility::FlipFace(*new_in);
+//                auto new_in = curr_l->edge;
+//                Utility::FlipLoop(*new_in);
 //                // outer
-//                auto new_out = create_loop(new_loops[ptr_face], curr_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+//                auto new_out = create_loop(new_loops[ptr_face], curr_l, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
 //                // seam
-//                seam_loops(new_in, new_out, curr_f, m_edges, m_next_edge_id);
+//                seam_loops(new_in, new_out, curr_l, m_edges, m_next_edge_id);
 //
 //                ++ptr_face;
-//                curr_f = curr_f->linked_next;
-//            } while (curr_f != first_f);
+//                curr_l = curr_l->linked_next;
+//            } while (curr_l != first_l);
 //        }
 //        else
 //        {
 //            assert(keep == KeepType::KeepAll);
 //
 //            size_t ptr_face = 0;
-//            std::vector<face2*> new_faces;
-//            auto first_f = m_faces.Head();
-//            auto curr_f = first_f;
+//            std::vector<loop2*> new_faces;
+//            auto first_l = m_loops.Head();
+//            auto curr_l = first_l;
 //            do {
-//                auto new_f = new face2(m_next_face_id++);
+//                auto new_f = new loop2(m_next_loop_id++);
 //
 //                // inner
-//                auto new_in = clone_loop(curr_f, new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-//                Utility::FlipFace(*new_in);
+//                auto new_in = clone_loop(curr_l, new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+//                Utility::FlipLoop(*new_in);
 //                // outer
 //                auto new_out = create_loop(new_loops[ptr_face], new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
 //                // seam
 //                seam_loops(new_in, new_out, new_f, m_edges, m_next_edge_id);
 //                // pair
-//                auto first_e = curr_f->edge;
+//                auto first_e = curr_l->edge;
 //                auto curr_e = first_e;
 //                auto new_e = new_in->prev;
 //                do {
@@ -244,11 +244,11 @@ namespace he
 //                new_faces.push_back(new_f);
 //
 //                ++ptr_face;
-//                curr_f = curr_f->linked_next;
-//            } while (curr_f != first_f);
+//                curr_l = curr_l->linked_next;
+//            } while (curr_l != first_l);
 //
 //            for (auto& f : new_faces) {
-//                m_faces.Append(f);
+//                m_loops.Append(f);
 //            }
 //        }
 //    }
@@ -257,43 +257,43 @@ namespace he
 //        if (keep == KeepType::KeepBorder)
 //        {
 //            size_t ptr_face = 0;
-//            auto first_f = m_faces.Head();
-//            auto curr_f = first_f;
+//            auto first_l = m_loops.Head();
+//            auto curr_l = first_l;
 //            do {
 //                // inner
-//                auto new_in = create_loop(new_loops[ptr_face], curr_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-//                Utility::FlipFace(*new_in);
+//                auto new_in = create_loop(new_loops[ptr_face], curr_l, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+//                Utility::FlipLoop(*new_in);
 //                // outer
-//                auto new_out = curr_f->edge;
+//                auto new_out = curr_l->edge;
 //                // seam
-//                seam_loops(new_in, new_out, curr_f, m_edges, m_next_edge_id);
+//                seam_loops(new_in, new_out, curr_l, m_edges, m_next_edge_id);
 //
 //                ++ptr_face;
-//                curr_f = curr_f->linked_next;
-//            } while (curr_f != first_f);
+//                curr_l = curr_l->linked_next;
+//            } while (curr_l != first_l);
 //        }
 //        else
 //        {
 //            assert(keep == KeepType::KeepAll);
 //
 //            size_t ptr_face = 0;
-//            std::vector<face2*> new_faces;
-//            auto first_f = m_faces.Head();
-//            auto curr_f = first_f;
+//            std::vector<loop2*> new_faces;
+//            auto first_l = m_loops.Head();
+//            auto curr_l = first_l;
 //            do {
-//                auto new_f = new face2(m_next_face_id++);
+//                auto new_f = new loop2(m_next_loop_id++);
 //
 //                // outer
-//                auto new_out = clone_loop(curr_f, new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+//                auto new_out = clone_loop(curr_l, new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
 //                // inner
 //                auto new_in = create_loop(new_loops[ptr_face], new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
 //                // offset origin
-//                set_loop_vertices(curr_f->edge, new_in);
+//                set_loop_vertices(curr_l->edge, new_in);
 //                flip_loop(new_in);
 //                // seam
 //                seam_loops(new_in, new_out, new_f, m_edges, m_next_edge_id);
 //                // pair
-//                auto first_e = curr_f->edge;
+//                auto first_e = curr_l->edge;
 //                auto curr_e = first_e;
 //                auto new_e = new_in->prev;
 //                do {
@@ -306,11 +306,11 @@ namespace he
 //                new_faces.push_back(new_f);
 //
 //                ++ptr_face;
-//                curr_f = curr_f->linked_next;
-//            } while (curr_f != first_f);
+//                curr_l = curr_l->linked_next;
+//            } while (curr_l != first_l);
 //
 //            for (auto& f : new_faces) {
-//                m_faces.Append(f);
+//                m_loops.Append(f);
 //            }
 //        }
 //    }
@@ -328,21 +328,21 @@ bool Polygon::Offset(float distance, KeepType keep)
     {
     case KeepType::KeepInside:
     {
-        auto first_f = m_borders.Head();
-        auto curr_f = first_f;
+        auto first_l = m_borders.Head();
+        auto curr_l = first_l;
         do {
-            offset_loop(curr_f->edge, distance);
-            curr_f = curr_f->linked_next;
-        } while (curr_f != first_f);
+            offset_loop(curr_l->edge, distance);
+            curr_l = curr_l->linked_next;
+        } while (curr_l != first_l);
 
-        first_f = m_holes.Head();
-        if (first_f)
+        first_l = m_holes.Head();
+        if (first_l)
         {
-            curr_f = first_f;
+            curr_l = first_l;
             do {
-                offset_loop(curr_f->edge, distance);
-                curr_f = curr_f->linked_next;
-            } while (curr_f != first_f);
+                offset_loop(curr_l->edge, distance);
+                curr_l = curr_l->linked_next;
+            } while (curr_l != first_l);
         }
     }
         break;
@@ -350,31 +350,31 @@ bool Polygon::Offset(float distance, KeepType keep)
     {
         if (distance > 0)
         {
-            auto first_f = m_borders.Head();
-            auto curr_f = first_f;
+            auto first_l = m_borders.Head();
+            auto curr_l = first_l;
             do {
-                auto hole = new face2(m_next_loop_id++);
-                hole->edge = clone_loop(curr_f, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-                Utility::FlipFace(*hole->edge);
-                offset_loop(curr_f->edge, distance);
+                auto hole = new loop2(m_next_loop_id++);
+                hole->edge = clone_loop(curr_l, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+                Utility::FlipLoop(*hole->edge);
+                offset_loop(curr_l->edge, distance);
                 m_holes.Append(hole);
 
-                curr_f = curr_f->linked_next;
-            } while (curr_f != first_f);
+                curr_l = curr_l->linked_next;
+            } while (curr_l != first_l);
         }
         else
         {
-            auto first_f = m_borders.Head();
-            auto curr_f = first_f;
+            auto first_l = m_borders.Head();
+            auto curr_l = first_l;
             do {
-                auto hole = new face2(m_next_loop_id++);
-                auto new_loop = calc_offset_loop(curr_f->edge, distance);
+                auto hole = new loop2(m_next_loop_id++);
+                auto new_loop = calc_offset_loop(curr_l->edge, distance);
                 hole->edge = create_loop(new_loop, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-                Utility::FlipFace(*hole->edge);
+                Utility::FlipLoop(*hole->edge);
                 m_holes.Append(hole);
 
-                curr_f = curr_f->linked_next;
-            } while (curr_f != first_f);
+                curr_l = curr_l->linked_next;
+            } while (curr_l != first_l);
         }
     }
         break;
