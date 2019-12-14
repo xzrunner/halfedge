@@ -39,7 +39,7 @@ void BuildMapVert2Planes(const he::Polyhedron& src, std::vector<sm::Plane>& plan
     auto curr_face = first_face;
     do {
         sm::Plane plane;
-        he::Utility::face_to_plane(*curr_face, plane);
+        he::Utility::FaceToPlane(*curr_face, plane);
         planes.push_back(plane);
 
         curr_face = curr_face->linked_next;
@@ -148,7 +148,7 @@ void Polyhedron::Fuse(float distance)
                 edge->vert = itr0->first;
             }
             itr1->first->ids.MakeInvalid();
-            m_vertices.Remove(itr1->first);
+            m_verts.Remove(itr1->first);
         }
     }
 
@@ -209,7 +209,7 @@ PolyhedronPtr Polyhedron::Fuse(const std::vector<PolyhedronPtr>& polys, float di
 
 void Polyhedron::UniquePoints()
 {
-    Utility::UniquePoints(m_vertices, m_edges, m_next_vert_id);
+    Utility::UniquePoints(m_verts, m_edges, m_next_vert_id);
 }
 
 bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bool create_face[ExtrudeMaxCount],
@@ -346,7 +346,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
     // use new vts
     if (add_front || add_side) {
         for (auto& v : new_vts) {
-            m_vertices.Append(v);
+            m_verts.Append(v);
         }
     } else {
         for (auto& v : new_vts) {
@@ -619,7 +619,7 @@ void Polyhedron::RemoveFace(face3* face)
         }
 
         if (!v->edge->ids.IsValid()) {
-            m_vertices.Remove(v);
+            m_verts.Remove(v);
             delete v;
         }
     }

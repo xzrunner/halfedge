@@ -17,7 +17,7 @@ bool Polyhedron::IsContain(const sm::vec3& pos) const
     auto curr_face = first_face;
     do {
         sm::Plane plane;
-        Utility::face_to_plane(*curr_face, plane);
+        Utility::FaceToPlane(*curr_face, plane);
         const float dist = plane.GetDistance(pos);
         if (dist > POINT_STATUS_EPSILON) {
             return false;

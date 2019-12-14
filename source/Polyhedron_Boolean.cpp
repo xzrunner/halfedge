@@ -30,7 +30,7 @@ DoIntersect(const he::Polyhedron& poly0, const he::Polyhedron& poly1)
     auto curr_face = first_face;
     do {
         sm::Plane plane;
-        he::Utility::face_to_plane(*curr_face, plane);
+        he::Utility::FaceToPlane(*curr_face, plane);
 
         bool succ = ret->Clip(plane, he::Polyhedron::KeepType::KeepBelow, true);
         if (ret->GetFaces().Size() == 0) {
@@ -51,7 +51,7 @@ void DoSubtract(std::vector<he::PolyhedronPtr>& result, const std::vector<he::Po
     }
 
     sm::Plane plane;
-    he::Utility::face_to_plane(*curr_face, plane);
+    he::Utility::FaceToPlane(*curr_face, plane);
 
     std::vector<he::PolyhedronPtr> back_frags;
 

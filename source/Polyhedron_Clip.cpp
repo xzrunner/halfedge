@@ -581,7 +581,7 @@ namespace he
 
 bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
 {
-    auto st = CheckIntersects(plane, m_vertices);
+    auto st = CheckIntersects(plane, m_verts);
     switch (st)
     {
     case PointStatus::Above:
@@ -594,7 +594,7 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
         assert(0);
     }
 
-    auto seam = IntersectWithPlane(plane, m_vertices, m_edges, m_faces,
+    auto seam = IntersectWithPlane(plane, m_verts, m_edges, m_faces,
         m_next_vert_id, m_next_edge_id, m_next_face_id);
     if (seam.empty()) {
         return false;
@@ -646,9 +646,9 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
         new_face->edge = new_edges[0];
     }
 
-    DeleteByPlane(plane, keep == KeepType::KeepBelow, m_vertices, m_edges, m_faces);
+    DeleteByPlane(plane, keep == KeepType::KeepBelow, m_verts, m_edges, m_faces);
 
-    m_aabb = CalcAABB(m_vertices);
+    m_aabb = CalcAABB(m_verts);
 
     return true;
 }

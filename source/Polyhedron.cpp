@@ -30,11 +30,11 @@ Polyhedron::Polyhedron(const std::vector<std::pair<TopoID, sm::vec3>>& vertices,
 Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
 {
     std::vector<std::pair<TopoID, sm::vec3>> vertices;
-    vertices.reserve(poly.m_vertices.Size());
+    vertices.reserve(poly.m_verts.Size());
 
     std::map<vert3*, size_t> vert2idx;
 
-    auto v_head = poly.m_vertices.Head();
+    auto v_head = poly.m_verts.Head();
     if (!v_head) {
         Clear();
         return *this;
@@ -72,7 +72,7 @@ Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
         f = f->linked_next;
     } while (f != f_head);
 
-    BuildFromPolygons(vertices, faces);
+    BuildFromFaces(vertices, faces);
 
     OffsetTopoID(m_next_vert_id, m_next_edge_id, m_next_face_id);
 
@@ -83,7 +83,7 @@ void Polyhedron::UpdateAABB()
 {
 	m_aabb.MakeEmpty();
 
-    auto head = m_vertices.Head();
+    auto head = m_verts.Head();
     if (head) {
         auto v = head;
         do {
@@ -99,7 +99,7 @@ void Polyhedron::OffsetTopoID(size_t v_off, size_t e_off, size_t f_off)
     m_next_edge_id += e_off;
     m_next_face_id += f_off;
 
-    auto first_v = m_vertices.Head();
+    auto first_v = m_verts.Head();
     auto curr_v = first_v;
     do {
         curr_v->ids.Offset(v_off);
@@ -142,7 +142,7 @@ void Polyhedron::Clear()
     m_next_edge_id = 0;
     m_next_face_id = 0;
 
-    m_vertices.Clear();
+    m_verts.Clear();
     m_edges.Clear();
     m_faces.Clear();
 

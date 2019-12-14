@@ -8,6 +8,8 @@ namespace he
 {
 
 void Utility::face_to_vertices(const face3& face, std::vector<sm::vec3>& border)
+
+void Utility::FaceToVertices(const face3& face, std::vector<sm::vec3>& border)
 {
     auto first_edge = face.edge;
     auto curr_edge = first_edge;
@@ -17,7 +19,7 @@ void Utility::face_to_vertices(const face3& face, std::vector<sm::vec3>& border)
     } while (curr_edge != first_edge);
 }
 
-void Utility::face_to_plane(const face3& face, sm::Plane& plane)
+void Utility::FaceToPlane(const face3& face, sm::Plane& plane)
 {
     auto curr_edge = face.edge;
     auto first_edge = curr_edge;

@@ -24,7 +24,7 @@ public:
         const std::vector<std::pair<TopoID, std::vector<size_t>>>& faces); // right-hand
     Polyhedron& operator = (const Polyhedron& poly);
 
-	auto& GetVertices() const { return m_vertices; }
+	auto& GetVertices() const { return m_verts; }
     auto& GetEdges() const    { return m_edges; }
 	auto& GetFaces() const    { return m_faces; }
 
@@ -80,9 +80,9 @@ private:
     void RemoveFace(face3* face);
 
 private:
-    DoublyLinkedList<vert3> m_vertices;
-    DoublyLinkedList<edge3>   m_edges;
-    DoublyLinkedList<face3>   m_faces;
+    DoublyLinkedList<vert3> m_verts;
+    DoublyLinkedList<edge3> m_edges;
+    DoublyLinkedList<face3> m_faces;
 
     static size_t m_next_vert_id;
     static size_t m_next_edge_id;
