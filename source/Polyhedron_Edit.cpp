@@ -607,6 +607,7 @@ void Polyhedron::RemoveFace(face3* face)
     for (auto& itr : vert2edges)
     {
         auto& v = itr.first;
+        assert(v->edge);
         if (v->edge->ids.IsValid()) {
             continue;
         }
