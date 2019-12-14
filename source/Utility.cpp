@@ -4,10 +4,37 @@
 
 #include <set>
 
+namespace
+{
+
+std::vector<sm::vec2> dump_vertices(const he::face2& face)
+{
+    std::vector<sm::vec2> verts;
+
+    auto first_e = face.edge;
+    auto curr_e = first_e;
+    do {
+        verts.push_back(curr_e->vert->position);
+        curr_e = curr_e->next;
+    } while (curr_e != first_e);
+
+    return verts;
+}
+
+}
+
 namespace he
 {
 
-void Utility::face_to_vertices(const face3& face, std::vector<sm::vec3>& border)
+bool Utility::IsLoopConvex(const face2& loop)
+{
+    return sm::is_polygon_convex(dump_vertices(loop));
+}
+
+bool Utility::IsLoopClockwise(const face2& loop)
+{
+    return sm::is_polygon_clockwise(dump_vertices(loop));
+}
 
 void Utility::FaceToVertices(const face3& face, std::vector<sm::vec3>& border)
 {

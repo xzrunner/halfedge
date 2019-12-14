@@ -5,6 +5,8 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <map>
+
 namespace he
 {
 
@@ -14,12 +16,15 @@ public:
     Polygon() {}
     Polygon(const Polygon& poly);
     Polygon(const std::vector<std::pair<TopoID, sm::vec2>>& vertices,
-        const std::vector<std::pair<TopoID, std::vector<size_t>>>& faces);
+        const std::vector<std::pair<TopoID, std::vector<size_t>>>& borders,
+        const std::vector<std::pair<TopoID, std::vector<size_t>>>& holes);
     Polygon& operator = (const Polygon& poly);
 
     auto& GetVertices() const { return m_verts; }
     auto& GetEdges() const    { return m_edges; }
-    auto& GetFaces() const    { return m_faces; }
+
+    auto& GetBorders() const { return m_borders; }
+    auto& GetHoles() const { return m_holes; }
 
     enum class KeepType
     {
@@ -29,22 +34,30 @@ public:
     };
     bool Offset(float distance, KeepType keep = KeepType::KeepAll);
 
-    bool IsConvex() const;
-
 private:
     void Clear();
 
-    void BuildFromFaces(const std::vector<std::pair<TopoID, sm::vec2>>& vertices,
-        const std::vector<std::pair<TopoID, std::vector<size_t>>>& faces);
+    void BuildFromLoops(const std::vector<std::pair<TopoID, sm::vec2>>& vertices,
+        const std::vector<std::pair<TopoID, std::vector<size_t>>>& borders,
+        const std::vector<std::pair<TopoID, std::vector<size_t>>>& holes);
+
+    face2* CreateLoop(const std::vector<vert2*>& verts, const std::pair<TopoID, std::vector<size_t>>& loop);
+
+    static std::vector<std::pair<TopoID, sm::vec2>>
+        DumpVertices(const DoublyLinkedList<vert2>& verts, std::map<vert2*, size_t>& vert2idx);
+    static std::vector<std::pair<TopoID, std::vector<size_t>>>
+        DumpFaces(const DoublyLinkedList<face2>& faces, const std::map<vert2*, size_t>& vert2idx);
 
 private:
     DoublyLinkedList<vert2> m_verts;
     DoublyLinkedList<edge2> m_edges;
-    DoublyLinkedList<face2> m_faces;
+
+    DoublyLinkedList<face2> m_borders;
+    DoublyLinkedList<face2> m_holes;
 
     static size_t m_next_vert_id;
     static size_t m_next_edge_id;
-    static size_t m_next_face_id;
+    static size_t m_next_loop_id;
 
 }; // Polygon
 

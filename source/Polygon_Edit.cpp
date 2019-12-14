@@ -1,4 +1,5 @@
 #include "halfedge/Polygon.h"
+#include "halfedge/Utility.h"
 
 #include <SM_Test.h>
 #include <SM_Calc.h>
@@ -57,22 +58,6 @@ he::edge2* clone_loop(const he::face2* old_face, he::face2* new_face,
     return ret;
 }
 
-void flip_loop(he::edge2* loop)
-{
-    std::vector<he::edge2*> edges;
-
-    auto first_e = loop;
-    auto curr_e = first_e;
-    do {
-        edges.push_back(curr_e);
-        curr_e = curr_e->next;
-    } while (curr_e != first_e);
-
-    for (size_t i = 0, n = edges.size(); i < n; ++i) {
-        edges[i]->Connect(edges[(i + n - 1) % n]);
-    }
-}
-
 void seam_loops(he::edge2* inner, he::edge2* outer, he::face2* face,
                 he::DoublyLinkedList<he::edge2>& edges, size_t& next_edge_id)
 {
@@ -114,211 +99,290 @@ void set_loop_vertices(he::edge2* dst, const he::edge2* src)
     } while (curr_e != first_e);
 }
 
+std::vector<sm::vec2> calc_offset_loop(he::edge2* loop, float distance)
+{
+    std::vector<sm::vec2> new_loop;
+
+    auto first_e = loop;
+    auto curr_e = first_e;
+    do {
+        auto curr = curr_e->vert;
+        auto prev = curr_e->prev->vert;
+        auto next = curr_e->next->vert;
+        auto angle = sm::get_angle(curr->position, prev->position, next->position);
+        auto norm = -sm::rotate_vector(prev->position - curr->position, -angle/2).Normalized();
+        auto new_p = curr->position + norm * distance;
+        new_loop.push_back(new_p);
+
+        curr_e = curr_e->next;
+    } while (curr_e != first_e);
+
+    return new_loop;
+}
+
+void offset_loop(he::edge2* loop, float distance)
+{
+    auto new_loop = calc_offset_loop(loop, distance);
+
+    size_t ptr = 0;
+    auto first_e = loop;
+    auto curr_e = first_e;
+    do {
+        curr_e->vert->position = new_loop[ptr++];
+        curr_e = curr_e->next;
+    } while (curr_e != first_e);
+}
+
 }
 
 namespace he
 {
 
-// todo: Edge event for distance < 0
+//// todo: Edge event for distance < 0
+//bool Polygon::Offset(float distance, KeepType keep)
+//{
+//    if (distance == 0) {
+//        return false;
+//    }
+//
+//    if (!IsConvex()) {
+//        return false;
+//    }
+//
+//    if (distance > 0 && keep == KeepType::KeepInside) {
+//        return true;
+//    }
+//
+//    // calc new border
+//    std::vector<std::vector<sm::vec2>> new_loops;
+//    auto first_f = m_faces.Head();
+//    auto curr_f = first_f;
+//    do {
+//        std::vector<sm::vec2> new_loop;
+//
+//        auto first_e = curr_f->edge;
+//        auto curr_e = first_e;
+//        do {
+//            auto curr = curr_e->vert;
+//            auto prev = curr_e->prev->vert;
+//            auto next = curr_e->next->vert;
+//            auto angle = sm::get_angle(curr->position, prev->position, next->position);
+//            auto norm = -sm::rotate_vector(prev->position - curr->position, -angle/2).Normalized();
+//            auto new_p = curr->position + norm * distance;
+//            new_loop.push_back(new_p);
+//
+//            curr_e = curr_e->next;
+//        } while (curr_e != first_e);
+//
+//        new_loops.push_back(new_loop);
+//
+//        curr_f = curr_f->linked_next;
+//    } while (curr_f != first_f);
+//
+//    if (distance < 0 && keep == KeepType::KeepInside)
+//    {
+//        size_t ptr = 0;
+//        auto first_f = m_faces.Head();
+//        auto curr_f = first_f;
+//        do {
+//            set_loop_pos(curr_f->edge, new_loops[ptr++]);
+//            curr_f = curr_f->linked_next;
+//        } while (curr_f != first_f);
+//
+//        return true;
+//    }
+//
+//    if (distance > 0)
+//    {
+//        if (keep == KeepType::KeepBorder)
+//        {
+//            size_t ptr_face = 0;
+//            auto first_f = m_faces.Head();
+//            auto curr_f = first_f;
+//            do {
+//                // inner
+//                auto new_in = curr_f->edge;
+//                Utility::FlipFace(*new_in);
+//                // outer
+//                auto new_out = create_loop(new_loops[ptr_face], curr_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+//                // seam
+//                seam_loops(new_in, new_out, curr_f, m_edges, m_next_edge_id);
+//
+//                ++ptr_face;
+//                curr_f = curr_f->linked_next;
+//            } while (curr_f != first_f);
+//        }
+//        else
+//        {
+//            assert(keep == KeepType::KeepAll);
+//
+//            size_t ptr_face = 0;
+//            std::vector<face2*> new_faces;
+//            auto first_f = m_faces.Head();
+//            auto curr_f = first_f;
+//            do {
+//                auto new_f = new face2(m_next_face_id++);
+//
+//                // inner
+//                auto new_in = clone_loop(curr_f, new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+//                Utility::FlipFace(*new_in);
+//                // outer
+//                auto new_out = create_loop(new_loops[ptr_face], new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+//                // seam
+//                seam_loops(new_in, new_out, new_f, m_edges, m_next_edge_id);
+//                // pair
+//                auto first_e = curr_f->edge;
+//                auto curr_e = first_e;
+//                auto new_e = new_in->prev;
+//                do {
+//                    he::edge_make_pair(curr_e, new_e);
+//                    new_e = new_e->prev;
+//                    curr_e = curr_e->next;
+//                } while (curr_e != first_e);
+//
+//                new_f->edge = new_in;
+//                new_faces.push_back(new_f);
+//
+//                ++ptr_face;
+//                curr_f = curr_f->linked_next;
+//            } while (curr_f != first_f);
+//
+//            for (auto& f : new_faces) {
+//                m_faces.Append(f);
+//            }
+//        }
+//    }
+//    else
+//    {
+//        if (keep == KeepType::KeepBorder)
+//        {
+//            size_t ptr_face = 0;
+//            auto first_f = m_faces.Head();
+//            auto curr_f = first_f;
+//            do {
+//                // inner
+//                auto new_in = create_loop(new_loops[ptr_face], curr_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+//                Utility::FlipFace(*new_in);
+//                // outer
+//                auto new_out = curr_f->edge;
+//                // seam
+//                seam_loops(new_in, new_out, curr_f, m_edges, m_next_edge_id);
+//
+//                ++ptr_face;
+//                curr_f = curr_f->linked_next;
+//            } while (curr_f != first_f);
+//        }
+//        else
+//        {
+//            assert(keep == KeepType::KeepAll);
+//
+//            size_t ptr_face = 0;
+//            std::vector<face2*> new_faces;
+//            auto first_f = m_faces.Head();
+//            auto curr_f = first_f;
+//            do {
+//                auto new_f = new face2(m_next_face_id++);
+//
+//                // outer
+//                auto new_out = clone_loop(curr_f, new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+//                // inner
+//                auto new_in = create_loop(new_loops[ptr_face], new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+//                // offset origin
+//                set_loop_vertices(curr_f->edge, new_in);
+//                flip_loop(new_in);
+//                // seam
+//                seam_loops(new_in, new_out, new_f, m_edges, m_next_edge_id);
+//                // pair
+//                auto first_e = curr_f->edge;
+//                auto curr_e = first_e;
+//                auto new_e = new_in->prev;
+//                do {
+//                    he::edge_make_pair(curr_e, new_e);
+//                    new_e = new_e->prev;
+//                    curr_e = curr_e->next;
+//                } while (curr_e != first_e);
+//
+//                new_f->edge = new_in;
+//                new_faces.push_back(new_f);
+//
+//                ++ptr_face;
+//                curr_f = curr_f->linked_next;
+//            } while (curr_f != first_f);
+//
+//            for (auto& f : new_faces) {
+//                m_faces.Append(f);
+//            }
+//        }
+//    }
+//
+//    return true;
+//}
+
 bool Polygon::Offset(float distance, KeepType keep)
 {
     if (distance == 0) {
         return false;
     }
 
-    if (!IsConvex()) {
-        return false;
-    }
-
-    if (distance > 0 && keep == KeepType::KeepInside) {
-        return true;
-    }
-
-    // calc new border
-    std::vector<std::vector<sm::vec2>> new_loops;
-    auto first_f = m_faces.Head();
-    auto curr_f = first_f;
-    do {
-        std::vector<sm::vec2> new_loop;
-
-        auto first_e = curr_f->edge;
-        auto curr_e = first_e;
-        do {
-            auto curr = curr_e->vert;
-            auto prev = curr_e->prev->vert;
-            auto next = curr_e->next->vert;
-            auto angle = sm::get_angle(curr->position, prev->position, next->position);
-            auto norm = -sm::rotate_vector(prev->position - curr->position, -angle/2).Normalized();
-            auto new_p = curr->position + norm * distance;
-            new_loop.push_back(new_p);
-
-            curr_e = curr_e->next;
-        } while (curr_e != first_e);
-
-        new_loops.push_back(new_loop);
-
-        curr_f = curr_f->linked_next;
-    } while (curr_f != first_f);
-
-    if (distance < 0 && keep == KeepType::KeepInside)
+    switch (keep)
     {
-        size_t ptr = 0;
-        auto first_f = m_faces.Head();
+    case KeepType::KeepInside:
+    {
+        auto first_f = m_borders.Head();
         auto curr_f = first_f;
         do {
-            set_loop_pos(curr_f->edge, new_loops[ptr++]);
+            offset_loop(curr_f->edge, distance);
             curr_f = curr_f->linked_next;
         } while (curr_f != first_f);
 
-        return true;
-    }
-
-    if (distance > 0)
-    {
-        if (keep == KeepType::KeepBorder)
+        first_f = m_holes.Head();
+        if (first_f)
         {
-            size_t ptr_face = 0;
-            auto first_f = m_faces.Head();
+            curr_f = first_f;
+            do {
+                offset_loop(curr_f->edge, distance);
+                curr_f = curr_f->linked_next;
+            } while (curr_f != first_f);
+        }
+    }
+        break;
+    case KeepType::KeepBorder:
+    {
+        if (distance > 0)
+        {
+            auto first_f = m_borders.Head();
             auto curr_f = first_f;
             do {
-                // inner
-                auto new_in = curr_f->edge;
-                flip_loop(new_in);
-                // outer
-                auto new_out = create_loop(new_loops[ptr_face], curr_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-                // seam
-                seam_loops(new_in, new_out, curr_f, m_edges, m_next_edge_id);
+                auto hole = new face2(m_next_loop_id++);
+                hole->edge = clone_loop(curr_f, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+                Utility::FlipFace(*hole->edge);
+                offset_loop(curr_f->edge, distance);
+                m_holes.Append(hole);
 
-                ++ptr_face;
                 curr_f = curr_f->linked_next;
             } while (curr_f != first_f);
         }
         else
         {
-            assert(keep == KeepType::KeepAll);
-
-            size_t ptr_face = 0;
-            std::vector<face2*> new_faces;
-            auto first_f = m_faces.Head();
+            auto first_f = m_borders.Head();
             auto curr_f = first_f;
             do {
-                auto new_f = new face2(m_next_face_id++);
+                auto hole = new face2(m_next_loop_id++);
+                auto new_loop = calc_offset_loop(curr_f->edge, distance);
+                hole->edge = create_loop(new_loop, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+                Utility::FlipFace(*hole->edge);
+                m_holes.Append(hole);
 
-                // inner
-                auto new_in = clone_loop(curr_f, new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-                flip_loop(new_in);
-                // outer
-                auto new_out = create_loop(new_loops[ptr_face], new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-                // seam
-                seam_loops(new_in, new_out, new_f, m_edges, m_next_edge_id);
-                // pair
-                auto first_e = curr_f->edge;
-                auto curr_e = first_e;
-                auto new_e = new_in->prev;
-                do {
-                    he::edge_make_pair(curr_e, new_e);
-                    new_e = new_e->prev;
-                    curr_e = curr_e->next;
-                } while (curr_e != first_e);
-
-                new_f->edge = new_in;
-                new_faces.push_back(new_f);
-
-                ++ptr_face;
                 curr_f = curr_f->linked_next;
             } while (curr_f != first_f);
-
-            for (auto& f : new_faces) {
-                m_faces.Append(f);
-            }
         }
     }
-    else
-    {
-        if (keep == KeepType::KeepBorder)
-        {
-            size_t ptr_face = 0;
-            auto first_f = m_faces.Head();
-            auto curr_f = first_f;
-            do {
-                // inner
-                auto new_in = create_loop(new_loops[ptr_face], curr_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-                flip_loop(new_in);
-                // outer
-                auto new_out = curr_f->edge;
-                // seam
-                seam_loops(new_in, new_out, curr_f, m_edges, m_next_edge_id);
-
-                ++ptr_face;
-                curr_f = curr_f->linked_next;
-            } while (curr_f != first_f);
-        }
-        else
-        {
-            assert(keep == KeepType::KeepAll);
-
-            size_t ptr_face = 0;
-            std::vector<face2*> new_faces;
-            auto first_f = m_faces.Head();
-            auto curr_f = first_f;
-            do {
-                auto new_f = new face2(m_next_face_id++);
-
-                // outer
-                auto new_out = clone_loop(curr_f, new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-                // inner
-                auto new_in = create_loop(new_loops[ptr_face], new_f, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-                // offset origin
-                set_loop_vertices(curr_f->edge, new_in);
-                flip_loop(new_in);
-                // seam
-                seam_loops(new_in, new_out, new_f, m_edges, m_next_edge_id);
-                // pair
-                auto first_e = curr_f->edge;
-                auto curr_e = first_e;
-                auto new_e = new_in->prev;
-                do {
-                    he::edge_make_pair(curr_e, new_e);
-                    new_e = new_e->prev;
-                    curr_e = curr_e->next;
-                } while (curr_e != first_e);
-
-                new_f->edge = new_in;
-                new_faces.push_back(new_f);
-
-                ++ptr_face;
-                curr_f = curr_f->linked_next;
-            } while (curr_f != first_f);
-
-            for (auto& f : new_faces) {
-                m_faces.Append(f);
-            }
-        }
+        break;
+    case KeepType::KeepAll:
+        break;
+    default:
+        assert(0);
     }
-
-    return true;
-}
-
-bool Polygon::IsConvex() const
-{
-    auto first_f = m_faces.Head();
-    auto curr_f = first_f;
-    do {
-        std::vector<sm::vec2> loop;
-
-        auto first_e = curr_f->edge;
-        auto curr_e = first_e;
-        do {
-            loop.push_back(curr_e->vert->position);
-            curr_e = curr_e->next;
-        } while (curr_e != first_e);
-
-        if (!sm::is_polygon_convex(loop)) {
-            return false;
-        }
-
-        curr_f = curr_f->linked_next;
-    } while (curr_f != first_f);
 
     return true;
 }

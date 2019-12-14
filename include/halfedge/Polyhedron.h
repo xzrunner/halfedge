@@ -10,6 +10,8 @@
 
 #include <vector>
 #include <memory>
+#include <tuple>
+#include <map>
 
 namespace he
 {
@@ -17,11 +19,17 @@ namespace he
 class Polyhedron
 {
 public:
+    using in_vert  = std::pair<TopoID, sm::vec3>;
+    using in_loop  = std::vector<size_t>;
+    using in_face1 = std::pair<TopoID, in_loop>;
+    using in_face2 = std::tuple<TopoID, in_loop, std::vector<in_loop>>;
+
+public:
     Polyhedron() {}
     Polyhedron(const Polyhedron& poly);
 	Polyhedron(const sm::cube& aabb);
-    Polyhedron(const std::vector<std::pair<TopoID, sm::vec3>>& vertices,
-        const std::vector<std::pair<TopoID, std::vector<size_t>>>& faces); // right-hand
+    Polyhedron(const std::vector<in_vert>& verts, const std::vector<in_face1>& faces); // right-hand
+    Polyhedron(const std::vector<in_vert>& verts, const std::vector<in_face2>& faces); // right-hand
     Polyhedron& operator = (const Polyhedron& poly);
 
 	auto& GetVertices() const { return m_verts; }

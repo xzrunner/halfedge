@@ -31,4 +31,29 @@ void Utility::UniquePoints(DoublyLinkedList<Vertex<T>>& vts,
     } while (curr_edge != first_edge);
 }
 
+template<typename T>
+void Utility::FlipFace(Face<T>& face)
+{
+    if (face.edge) {
+        FlipFace(*face.edge);
+    }
+}
+
+template<typename T>
+void Utility::FlipFace(Edge<T>& edge)
+{
+    std::vector<Edge<T>*> edges;
+
+    auto first_e = &edge;
+    auto curr_e = first_e;
+    do {
+        edges.push_back(curr_e);
+        curr_e = curr_e->next;
+    } while (curr_e != first_e);
+
+    for (size_t i = 0, n = edges.size(); i < n; ++i) {
+        edges[i]->Connect(edges[(i + n - 1) % n]);
+    }
+}
+
 }
