@@ -160,7 +160,8 @@ void IntersectWithPlane(he::edge3* old_boundary_first,
                         he::edge3* new_boundary_first,
                         he::DoublyLinkedList<he::edge3>& edges,
                         he::DoublyLinkedList<he::loop3>& loops,
-                        size_t& next_edge_id, size_t& next_loop_id)
+                        size_t& next_edge_id, size_t& next_loop_id,
+                        std::vector<he::Polyhedron::Face>& faces)
 {
     he::edge3* new_boundary_last = old_boundary_first->prev;
 
@@ -185,13 +186,16 @@ void IntersectWithPlane(he::edge3* old_boundary_first,
     edges.Append(old_boundary_splitter);
     edges.Append(new_boundary_splitter);
     loops.Append(new_loop);
+
+    faces.emplace_back(new_loop);
 }
 
 he::edge3* IntersectWithPlane(he::edge3* first_boundary_edge, const sm::Plane& plane,
-                             he::DoublyLinkedList<he::vert3>& verts,
-                             he::DoublyLinkedList<he::edge3>& edges,
-                             he::DoublyLinkedList<he::loop3>& loops,
-                             size_t& next_vert_id, size_t& next_edge_id, size_t& next_loop_id)
+                              he::DoublyLinkedList<he::vert3>& verts,
+                              he::DoublyLinkedList<he::edge3>& edges,
+                              he::DoublyLinkedList<he::loop3>& loops,
+                              size_t& next_vert_id, size_t& next_edge_id, size_t& next_loop_id,
+                              std::vector<he::Polyhedron::Face>& faces)
 {
     he::edge3* seam_ori = nullptr;
     he::edge3* seam_dst = nullptr;
@@ -241,9 +245,9 @@ he::edge3* IntersectWithPlane(he::edge3* first_boundary_edge, const sm::Plane& p
         auto os = CalcPointStatus(plane, seam_ori->next->vert->position);
         assert(os != PointStatus::Inside);
         if (os == PointStatus::Below) {
-            IntersectWithPlane(seam_ori, seam_dst, edges, loops, next_edge_id, next_loop_id);
+            IntersectWithPlane(seam_ori, seam_dst, edges, loops, next_edge_id, next_loop_id, faces);
         } else {
-            IntersectWithPlane(seam_dst, seam_ori, edges, loops, next_edge_id, next_loop_id);
+            IntersectWithPlane(seam_dst, seam_ori, edges, loops, next_edge_id, next_loop_id, faces);
         }
     }
 
@@ -280,7 +284,8 @@ std::vector<he::edge3*> IntersectWithPlaneImpl(he::edge3* start_edge, const sm::
                                                he::DoublyLinkedList<he::vert3>& verts,
                                                he::DoublyLinkedList<he::edge3>& edges,
                                                he::DoublyLinkedList<he::loop3>& loops,
-                                               size_t& next_vert_id, size_t& next_edge_id, size_t& next_loop_id)
+                                               size_t& next_vert_id, size_t& next_edge_id, size_t& next_loop_id,
+                                               std::vector<he::Polyhedron::Face>& faces)
 {
     std::vector<he::edge3*> seam;
 
@@ -292,7 +297,8 @@ std::vector<he::edge3*> IntersectWithPlaneImpl(he::edge3* start_edge, const sm::
             return std::vector<he::edge3*>();
         }
 
-        curr_edge = IntersectWithPlane(curr_edge, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id);
+        curr_edge = IntersectWithPlane(curr_edge, plane, verts, edges, loops,
+            next_vert_id, next_edge_id, next_loop_id, faces);
         seam.push_back(curr_edge);
     } while (curr_edge->next->vert != stop_vert);
 
@@ -307,17 +313,18 @@ std::vector<he::edge3*> IntersectWithPlane(const sm::Plane& plane,
                                            he::DoublyLinkedList<he::vert3>& verts,
                                            he::DoublyLinkedList<he::edge3>& edges,
                                            he::DoublyLinkedList<he::loop3>& loops,
-                                           size_t& next_vert_id, size_t& next_edge_id, size_t& next_loop_id)
+                                           size_t& next_vert_id, size_t& next_edge_id, size_t& next_loop_id,
+                                           std::vector<he::Polyhedron::Face>& faces)
 {
     std::vector<he::edge3*> seam;
 
     auto init_edge = FindInitialIntersectingEdge(plane, edges);
     assert(init_edge);
 
-    auto start_edge = IntersectWithPlane(init_edge, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id);
-    seam = IntersectWithPlaneImpl(start_edge, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id);
+    auto start_edge = IntersectWithPlane(init_edge, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id, faces);
+    seam = IntersectWithPlaneImpl(start_edge, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id, faces);
     if (seam.empty()) {
-        seam = IntersectWithPlaneImpl(start_edge->twin, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id);
+        seam = IntersectWithPlaneImpl(start_edge->twin, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id, faces);
     }
 
     if (seam.empty()) {
@@ -502,6 +509,30 @@ void FixLoopInvalid(he::DoublyLinkedList<he::loop3>& loops)
     } while (curr_l != first_l);
 }
 
+
+void DeleteInvalid(std::vector<he::Polyhedron::Face>& faces)
+{
+    for (auto itr = faces.begin(); itr != faces.end(); )
+    {
+        bool valid = true;
+        if (!itr->border->ids.IsValid()) {
+            valid = false;
+        }
+        for (auto& hole : itr->holes) {
+            if (!itr->border->ids.IsValid()) {
+                valid = false;
+                break;
+            }
+        }
+
+        if (!valid) {
+            itr = faces.erase(itr);
+        } else {
+            itr++;
+        }
+    }
+}
+
 template <typename T>
 void DeleteInvalid(he::DoublyLinkedList<T>& list)
 {
@@ -526,7 +557,8 @@ void DeleteInvalid(he::DoublyLinkedList<T>& list)
 void DeleteByPlane(const sm::Plane& plane, bool del_above,
                    he::DoublyLinkedList<he::vert3>& verts,
                    he::DoublyLinkedList<he::edge3>& edges,
-                   he::DoublyLinkedList<he::loop3>& loops)
+                   he::DoublyLinkedList<he::loop3>& loops,
+                   std::vector<he::Polyhedron::Face>& faces)
 {
     bool vert_dirty = false;
 
@@ -552,6 +584,8 @@ void DeleteByPlane(const sm::Plane& plane, bool del_above,
     } while (FixVertexInvalid(verts, edges));
     FixEdgeInvalid(edges);
     FixLoopInvalid(loops);
+
+    DeleteInvalid(faces);
 
     DeleteInvalid(verts);
     DeleteInvalid(edges);
@@ -595,7 +629,7 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
     }
 
     auto seam = IntersectWithPlane(plane, m_verts, m_edges, m_loops,
-        m_next_vert_id, m_next_edge_id, m_next_loop_id);
+        m_next_vert_id, m_next_edge_id, m_next_loop_id, m_faces);
     if (seam.empty()) {
         return false;
     }
@@ -618,6 +652,7 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
 
         auto new_loop = new loop3(m_next_loop_id++);
         m_loops.Append(new_loop);
+        m_faces.emplace_back(new_loop);
 
         std::vector<edge3*> new_edges;
         new_edges.reserve(seam.size());
@@ -646,7 +681,7 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
         new_loop->edge = new_edges[0];
     }
 
-    DeleteByPlane(plane, keep == KeepType::KeepBelow, m_verts, m_edges, m_loops);
+    DeleteByPlane(plane, keep == KeepType::KeepBelow, m_verts, m_edges, m_loops, m_faces);
 
     m_aabb = CalcAABB(m_verts);
 

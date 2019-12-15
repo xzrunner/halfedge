@@ -20,6 +20,12 @@ public:
     template<typename T>
     static void FlipLoop(Edge<T>& edge);
 
+    template<typename T>
+    static Edge<T>* CloneLoop(const Loop<T>* old_loop, Loop<T>* new_loop, size_t& next_edge_id);
+
+    template<typename T>
+    static size_t EdgeSize(const Loop<T>& loop);
+
     // loop2
     static bool IsLoopConvex(const loop2& loop);
     static bool IsLoopClockwise(const loop2& loop);

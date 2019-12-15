@@ -19,7 +19,7 @@ Polygon::Polygon(const Polygon& poly)
 
 Polygon::Polygon(const std::vector<in_vert>& verts, const std::vector<in_face>& faces)
 {
-    BuildFromLoops(verts, faces);
+    BuildFromFaces(verts, faces);
 }
 
 Polygon& Polygon::operator = (const Polygon& poly)
@@ -44,7 +44,7 @@ Polygon& Polygon::operator = (const Polygon& poly)
         std::get<2>(dst) = holes;
     }
 
-    BuildFromLoops(verts, faces);
+    BuildFromFaces(verts, faces);
 
 //    OffsetTopoID(m_next_vert_id, m_next_edge_id, m_next_loop_id);
 
@@ -64,7 +64,7 @@ void Polygon::Clear()
     m_loops.Clear();
 }
 
-void Polygon::BuildFromLoops(const std::vector<in_vert>& verts, const std::vector<in_face>& faces)
+void Polygon::BuildFromFaces(const std::vector<in_vert>& verts, const std::vector<in_face>& faces)
 {
     Clear();
 

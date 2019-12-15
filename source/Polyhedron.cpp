@@ -21,60 +21,32 @@ Polyhedron::Polyhedron(const sm::cube& aabb)
     BuildFromCube(aabb);
 }
 
-Polyhedron::Polyhedron(const std::vector<in_vert>& verts, const std::vector<in_face_no_hole>& faces)
-{
-    BuildFromFaces(verts, faces);
-}
-
-Polyhedron::Polyhedron(const std::vector<in_vert>& verts, const std::vector<in_face_with_hole>& faces)
+Polyhedron::Polyhedron(const std::vector<in_vert>& verts, const std::vector<in_face>& faces)
 {
     BuildFromFaces(verts, faces);
 }
 
 Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
 {
-    std::vector<std::pair<TopoID, sm::vec3>> verts;
-    verts.reserve(poly.m_verts.Size());
-
     std::map<vert3*, size_t> vert2idx;
+    auto verts = DumpVertices(poly.m_verts, vert2idx);
 
-    auto v_head = poly.m_verts.Head();
-    if (!v_head) {
-        Clear();
-        return *this;
-    }
-    auto v = v_head;
+    std::vector<in_face> faces;
+    faces.resize(m_faces.size());
     size_t idx = 0;
-    do {
-        verts.push_back({ v->ids, v->position });
-        vert2idx.insert({ v, idx++ });
-        v = v->linked_next;
-    } while (v != v_head);
+    for (auto& face : m_faces)
+    {
+        std::vector<in_loop> holes;
+        holes.reserve(face.holes.size());
+        for (auto& hole : face.holes) {
+            holes.push_back(DumpLoop(*hole, vert2idx));
+        }
 
-    std::vector<std::pair<TopoID, std::vector<size_t>>> faces;
-    faces.reserve(poly.m_loops.Size());
-    auto f_head = poly.m_loops.Head();
-    if (!f_head) {
-        Clear();
-        return *this;
+        auto& dst = faces[idx++];
+        std::get<0>(dst) = face.border->ids;
+        std::get<1>(dst) = DumpLoop(*face.border, vert2idx);
+        std::get<2>(dst) = holes;
     }
-    auto f = f_head;
-    do {
-        std::vector<size_t> loop;
-
-        auto e_head = f->edge;
-        auto e = e_head;
-        do {
-            auto itr = vert2idx.find(e->vert);
-            assert(itr != vert2idx.end());
-            loop.push_back(itr->second);
-            e = e->next;
-        } while (e != e_head);
-
-        faces.push_back({ f->ids, loop });
-
-        f = f->linked_next;
-    } while (f != f_head);
 
     BuildFromFaces(verts, faces);
 
@@ -146,11 +118,50 @@ void Polyhedron::Clear()
     m_next_edge_id = 0;
     m_next_loop_id = 0;
 
+    m_faces.clear();
+
     m_verts.Clear();
     m_edges.Clear();
     m_loops.Clear();
 
     m_aabb.MakeEmpty();
+}
+
+std::vector<Polyhedron::in_vert>
+Polyhedron::DumpVertices(const DoublyLinkedList<vert3>& verts, std::map<vert3*, size_t>& vert2idx)
+{
+    std::vector<std::pair<TopoID, sm::vec3>> ret;
+    ret.reserve(verts.Size());
+
+    auto first_v = verts.Head();
+    auto curr_v = first_v;
+    size_t idx = 0;
+    do {
+        ret.push_back({ curr_v->ids, curr_v->position });
+        vert2idx.insert({ curr_v, idx++ });
+
+        curr_v = curr_v->linked_next;
+    } while (curr_v != first_v);
+
+    return ret;
+}
+
+Polyhedron::in_loop
+Polyhedron::DumpLoop(const loop3& loop, const std::map<vert3*, size_t>& vert2idx)
+{
+    in_loop ret;
+
+    auto first_e = loop.edge;
+    auto curr_e = first_e;
+    do {
+        auto itr = vert2idx.find(curr_e->vert);
+        assert(itr != vert2idx.end());
+        ret.push_back(itr->second);
+
+        curr_e = curr_e->next;
+    } while (curr_e && curr_e != first_e);
+
+    return ret;
 }
 
 }

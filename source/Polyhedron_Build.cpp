@@ -62,6 +62,7 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     m_edges.Append(bottom_left).Append(bottom_back)
            .Append(bottom_right).Append(bottom_front);
 	m_loops.Append(bottom);
+    m_faces.emplace_back(bottom);
 
 	// Left face
 	auto left = new loop3(m_next_loop_id++);
@@ -75,6 +76,7 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     m_edges.Append(left_bottom).Append(left_front)
            .Append(left_top).Append(left_back);
     m_loops.Append(left);
+    m_faces.emplace_back(left);
 
 	// Front face
 	auto front = new loop3(m_next_loop_id++);
@@ -88,6 +90,7 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     m_edges.Append(front_left).Append(front_bottom)
            .Append(front_right).Append(front_top);
     m_loops.Append(front);
+    m_faces.emplace_back(front);
 
 	// Back face
 	auto back = new loop3(m_next_loop_id++);
@@ -101,6 +104,7 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     m_edges.Append(back_bottom).Append(back_left)
            .Append(back_top).Append(back_right);
     m_loops.Append(back);
+    m_faces.emplace_back(back);
 
 	// Top face
 	auto top = new loop3(m_next_loop_id++);
@@ -114,6 +118,7 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     m_edges.Append(top_left).Append(top_front)
            .Append(top_right).Append(top_back);
     m_loops.Append(top);
+    m_faces.emplace_back(top);
 
 	// Right face
 	auto right = new loop3(m_next_loop_id++);
@@ -127,6 +132,7 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
     m_edges.Append(right_front).Append(right_bottom)
            .Append(right_back).Append(right_top);
     m_loops.Append(right);
+    m_faces.emplace_back(right);
 
     edge_make_pair(top_left,  left_top);
     edge_make_pair(top_back,  back_top);
@@ -145,7 +151,7 @@ void Polyhedron::BuildFromCube(const sm::cube& aabb)
 }
 
 void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
-                                const std::vector<in_face_no_hole>& faces)
+                                const std::vector<in_face>& faces)
 {
     Clear();
 
@@ -155,25 +161,8 @@ void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
     std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp> map2edge;
 	for (auto& face : faces)
 	{
-        auto border_loop = BuildLoop(face.first, face.second, v_array, map2edge);
-        assert(border_loop);
-        m_loops.Append(border_loop);
-	}
+        Face dst_f;
 
-    make_edge_pair(map2edge);
-}
-
-void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
-                                const std::vector<in_face_with_hole>& faces)
-{
-    Clear();
-
-    std::vector<vert3*> v_array;
-    BuildVertices(verts, v_array);
-
-    std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp> map2edge;
-	for (auto& face : faces)
-	{
         auto& id     = std::get<0>(face);
         auto& border = std::get<1>(face);
         auto& holes  = std::get<2>(face);
@@ -181,13 +170,18 @@ void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
         auto border_loop = BuildLoop(id, border, v_array, map2edge);
         assert(border_loop);
         m_loops.Append(border_loop);
+        dst_f.border = border_loop;
 
+        dst_f.holes.reserve(holes.size());
         for (auto& hole : holes)
         {
             auto hole_loop = BuildLoop(id, hole, v_array, map2edge);
             assert(hole_loop);
             m_loops.Append(hole_loop);
+            dst_f.holes.push_back(hole_loop);
         }
+
+        m_faces.push_back(dst_f);
 	}
 
     make_edge_pair(map2edge);

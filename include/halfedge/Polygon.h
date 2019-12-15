@@ -44,7 +44,7 @@ public:
 private:
     void Clear();
 
-    void BuildFromLoops(const std::vector<in_vert>& verts, const std::vector<in_face>& faces);
+    void BuildFromFaces(const std::vector<in_vert>& verts, const std::vector<in_face>& faces);
 
     loop2* CreateLoop(const std::vector<vert2*>& verts, TopoID id, const std::vector<size_t>& loop);
 
