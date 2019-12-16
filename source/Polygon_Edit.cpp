@@ -119,6 +119,48 @@ bool Polygon::Offset(float distance, KeepType keep)
         return false;
     }
 
+    auto append_all = [&](loop2* loop)
+    {
+        auto first_e = loop->edge;
+        auto curr_e = first_e;
+        do {
+            m_verts.Append(curr_e->vert);
+            m_edges.Append(curr_e);
+
+            curr_e = curr_e->next;
+        } while (curr_e != first_e);
+
+        m_loops.Append(loop);
+    };
+
+    auto face_to_border = [&](Face& face, float distance)
+    {
+        if (distance > 0)
+        {
+            auto hole = new loop2(m_next_loop_id++);
+            auto new_loop = calc_offset_loop(face.border->edge, 0);
+            hole->edge = create_loop(new_loop, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+            Utility::FlipLoop(*hole->edge);
+            append_all(hole);
+
+            face.holes.push_back(hole);
+
+            offset_loop(face.border->edge, distance);
+        }
+        else
+        {
+            assert(distance < 0);
+
+            auto hole = new loop2(m_next_loop_id++);
+            auto new_loop = calc_offset_loop(face.border->edge, distance);
+            hole->edge = create_loop(new_loop, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
+            Utility::FlipLoop(*hole->edge);
+            append_all(hole);
+
+            face.holes.push_back(hole);
+        }
+    };
+
     switch (keep)
     {
     case KeepType::KeepInside:
@@ -129,6 +171,7 @@ bool Polygon::Offset(float distance, KeepType keep)
         }
         else
         {
+            assert(distance < 0);
             for (auto& face : m_faces)
             {
                 offset_loop(face.border->edge, distance);
@@ -140,47 +183,24 @@ bool Polygon::Offset(float distance, KeepType keep)
     }
         break;
     case KeepType::KeepBorder:
-    {
-        if (distance > 0)
-        {
-            for (auto& face : m_faces)
-            {
-                auto hole = new loop2(m_next_loop_id++);
-                auto new_loop = calc_offset_loop(face.border->edge, 0);
-                hole->edge = create_loop(new_loop, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-                Utility::FlipLoop(*hole->edge);
-                m_loops.Append(hole);
-
-                face.holes.push_back(hole);
-
-                offset_loop(face.border->edge, distance);
-            }
+        for (auto& face : m_faces) {
+            face_to_border(face, distance);
         }
-        else
-        {
-            for (auto& face : m_faces)
-            {
-                auto hole = new loop2(m_next_loop_id++);
-                auto new_loop = calc_offset_loop(face.border->edge, distance);
-                hole->edge = create_loop(new_loop, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
-                Utility::FlipLoop(*hole->edge);
-                m_loops.Append(hole);
-
-                face.holes.push_back(hole);
-            }
-        }
-    }
         break;
     case KeepType::KeepAll:
     {
-        if (distance > 0)
+        std::vector<Face> insides;
+        for (auto& face : m_faces)
         {
+            face_to_border(face, distance);
 
+            auto inside = new loop2(m_next_loop_id++);
+            inside->edge = Utility::CloneLoop(face.holes.front(), inside, m_next_edge_id);
+            Utility::FlipLoop(*inside->edge);
+            append_all(inside);
+            insides.emplace_back(inside);
         }
-        else
-        {
-
-        }
+        std::copy(insides.begin(), insides.end(), std::back_inserter(m_faces));
     }
         break;
     default:

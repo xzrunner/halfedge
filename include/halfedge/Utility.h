@@ -22,6 +22,8 @@ public:
 
     template<typename T>
     static Edge<T>* CloneLoop(const Loop<T>* old_loop, Loop<T>* new_loop, size_t& next_edge_id);
+    template<typename T>
+    static Edge<T>* CloneLoop(const Loop<T>* old_loop, Loop<T>* new_loop, size_t& next_vert_id, size_t& next_edge_id);
 
     template<typename T>
     static size_t EdgeSize(const Loop<T>& loop);

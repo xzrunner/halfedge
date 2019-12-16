@@ -83,6 +83,33 @@ Edge<T>* Utility::CloneLoop(const Loop<T>* old_loop, Loop<T>* new_loop, size_t& 
 }
 
 template<typename T>
+static Edge<T>* Utility::CloneLoop(const Loop<T>* old_loop, Loop<T>* new_loop, size_t& next_vert_id, size_t& next_edge_id)
+{
+    Edge<T>* ret = nullptr;
+
+    Edge<T>* prev_edge = nullptr;
+    auto first_e = old_loop->edge;
+    auto curr_e = first_e;
+    do {
+        auto vert = new Vertex<T>(curr_e->vert->position, curr_e->vert->ids);
+        auto edge = new Edge<T>(vert, new_loop, next_edge_id++);
+        if (prev_edge) {
+            prev_edge->Connect(edge);
+        } else {
+            assert(!ret);
+            ret = edge;
+        }
+        prev_edge = edge;
+
+        curr_e = curr_e->next;
+    } while (curr_e != first_e);
+
+    prev_edge->Connect(ret);
+
+    return ret;
+}
+
+template<typename T>
 size_t Utility::EdgeSize(const Loop<T>& loop)
 {
     size_t num = 0;
