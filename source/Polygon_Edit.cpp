@@ -119,12 +119,14 @@ bool Polygon::Offset(float distance, KeepType keep)
         return false;
     }
 
-    auto append_all = [&](loop2* loop)
+    auto append_all = [&](loop2* loop, bool vert)
     {
         auto first_e = loop->edge;
         auto curr_e = first_e;
         do {
-            m_verts.Append(curr_e->vert);
+            if (vert) {
+                m_verts.Append(curr_e->vert);
+            }
             m_edges.Append(curr_e);
 
             curr_e = curr_e->next;
@@ -141,7 +143,7 @@ bool Polygon::Offset(float distance, KeepType keep)
             auto new_loop = calc_offset_loop(face.border->edge, 0);
             hole->edge = create_loop(new_loop, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
             Utility::FlipLoop(*hole->edge);
-            append_all(hole);
+            append_all(hole, true);
 
             face.holes.push_back(hole);
 
@@ -155,7 +157,7 @@ bool Polygon::Offset(float distance, KeepType keep)
             auto new_loop = calc_offset_loop(face.border->edge, distance);
             hole->edge = create_loop(new_loop, hole, m_verts, m_edges, m_next_vert_id, m_next_edge_id);
             Utility::FlipLoop(*hole->edge);
-            append_all(hole);
+            append_all(hole, true);
 
             face.holes.push_back(hole);
         }
@@ -197,7 +199,7 @@ bool Polygon::Offset(float distance, KeepType keep)
             auto inside = new loop2(m_next_loop_id++);
             inside->edge = Utility::CloneLoop(face.holes.front(), inside, m_next_edge_id);
             Utility::FlipLoop(*inside->edge);
-            append_all(inside);
+            append_all(inside, false);
             insides.emplace_back(inside);
         }
         std::copy(insides.begin(), insides.end(), std::back_inserter(m_faces));
