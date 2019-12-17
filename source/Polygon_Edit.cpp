@@ -85,7 +85,7 @@ std::vector<sm::vec2> calc_offset_loop(he::edge2* loop, float distance)
         auto next = curr_e->next->vert;
         auto angle = sm::get_angle(curr->position, prev->position, next->position);
         auto norm = -sm::rotate_vector(prev->position - curr->position, -angle/2).Normalized();
-        auto new_p = curr->position + norm * distance;
+        auto new_p = curr->position + norm * distance / cos(angle / 2);
         new_loop.push_back(new_p);
 
         curr_e = curr_e->next;
