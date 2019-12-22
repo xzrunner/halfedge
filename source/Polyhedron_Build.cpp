@@ -187,6 +187,74 @@ void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
     make_edge_pair(map2edge);
 }
 
+void Polyhedron::BuildFromFaces(const std::vector<Face>& faces)
+{
+    std::vector<in_vert> dst_verts;
+
+    std::map<vert3*, size_t> vert2id;
+    auto build_verts = [&](const loop3& loop)
+    {
+        auto first_e = loop.edge;
+        auto curr_e = first_e;
+        do {
+            auto& vert = curr_e->vert;
+            auto itr = vert2id.find(vert);
+            if (itr == vert2id.end())
+            {
+                size_t id = dst_verts.size();
+                dst_verts.push_back({ vert->ids, vert->position });
+                vert2id.insert({ vert, id });
+            }
+
+            curr_e = curr_e->next;
+        } while (curr_e != first_e);
+    };
+
+    for (auto& face : faces)
+    {
+        if (face.border) {
+            build_verts(*face.border);
+        }
+        for (auto& hole : face.holes) {
+            build_verts(*hole);
+        }
+    }
+
+    auto build_loops = [](const loop3& loop, const std::map<vert3*, size_t>& vert2id) -> in_loop
+    {
+        in_loop dst;
+
+        auto first_e = loop.edge;
+        auto curr_e = first_e;
+        do {
+            auto& vert = curr_e->vert;
+            auto itr = vert2id.find(vert);
+            assert(itr != vert2id.end());
+            dst.push_back(itr->second);
+
+            curr_e = curr_e->next;
+        } while (curr_e != first_e);
+
+        return dst;
+    };
+
+    std::vector<in_face> dst_faces;
+    for (auto& face : faces)
+    {
+        in_face dst_face;
+        std::get<0>(dst_face) = face.border->ids;
+        if (face.border) {
+            std::get<1>(dst_face) = build_loops(*face.border, vert2id);
+        }
+        for (auto& hole : face.holes) {
+            std::get<2>(dst_face).push_back(build_loops(*hole, vert2id));
+        }
+        dst_faces.push_back(dst_face);
+    }
+
+    BuildFromFaces(dst_verts, dst_faces);
+}
+
 void Polyhedron::BuildVertices(const std::vector<in_vert>& verts, std::vector<vert3*>& v_array)
 {
     v_array.reserve(verts.size());

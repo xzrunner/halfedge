@@ -26,6 +26,11 @@ Polyhedron::Polyhedron(const std::vector<in_vert>& verts, const std::vector<in_f
     BuildFromFaces(verts, faces);
 }
 
+Polyhedron::Polyhedron(const std::vector<Face>& faces)
+{
+    BuildFromFaces(faces);
+}
+
 Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
 {
     std::map<vert3*, size_t> vert2idx;

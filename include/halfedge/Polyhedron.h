@@ -40,6 +40,7 @@ public:
     Polyhedron(const Polyhedron& poly);
 	Polyhedron(const sm::cube& aabb);
     Polyhedron(const std::vector<in_vert>& verts, const std::vector<in_face>& faces); // right-hand
+    Polyhedron(const std::vector<Face>& faces);
     Polyhedron& operator = (const Polyhedron& poly);
 
 	auto& GetVerts() const { return m_verts; }
@@ -107,6 +108,7 @@ private:
     void BuildFromCube(const sm::cube& aabb);
     void BuildFromFaces(const std::vector<in_vert>& verts,
         const std::vector<in_face>& faces);
+    void BuildFromFaces(const std::vector<Face>& faces);
 
     void BuildVertices(const std::vector<in_vert>& verts, std::vector<vert3*>& v_array);
     loop3* BuildLoop(TopoID id, const std::vector<size_t>& loop, const std::vector<vert3*>& v_array,
