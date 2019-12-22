@@ -69,4 +69,23 @@ void Utility::LoopToPlane(const loop3& loop, sm::Plane& plane)
     assert(0);
 }
 
+sm::vec3 Utility::CalcLoopNorm(const loop3& loop)
+{
+    sm::Plane plane;
+    LoopToPlane(loop, plane);
+    return plane.normal;
+}
+
+sm::vec3 Utility::CalcFaceNorm(const Polyhedron::Face& face)
+{
+    if (face.border) {
+        return CalcLoopNorm(*face.border);
+    } else {
+        for (auto& hole : face.holes) {
+            return -CalcLoopNorm(*hole);
+        }
+        return sm::vec3(0, 1, 0);
+    }
+}
+
 }

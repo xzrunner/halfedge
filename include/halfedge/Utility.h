@@ -2,6 +2,7 @@
 
 #include "halfedge/DoublyLinkedList.h"
 #include "halfedge/HalfEdge.h"
+#include "halfedge/Polyhedron.h"
 
 #include <SM_Plane.h>
 
@@ -28,13 +29,18 @@ public:
     template<typename T>
     static size_t EdgeSize(const Loop<T>& loop);
 
-    // loop2
+    // 2d
+
     static bool IsLoopConvex(const loop2& loop);
     static bool IsLoopClockwise(const loop2& loop);
 
-    // loop3
+    // 3d
+
     static void LoopToVertices(const loop3& loop, std::vector<sm::vec3>& border);
     static void LoopToPlane(const loop3& loop, sm::Plane& plane);
+
+    static sm::vec3 CalcLoopNorm(const loop3& loop);
+    static sm::vec3 CalcFaceNorm(const Polyhedron::Face& face);
 
 }; // Utility
 
