@@ -42,6 +42,25 @@ public:
     static sm::vec3 CalcLoopNorm(const loop3& loop);
     static sm::vec3 CalcFaceNorm(const Polyhedron::Face& face);
 
+    static constexpr float POINT_STATUS_EPSILON = 0.0001f;
+
+    enum class PointStatus
+    {
+        Above,
+        Below,
+        Inside,
+    };
+    static PointStatus CalcPointPlaneStatus(const sm::Plane& plane, const sm::vec3& pos);
+
+    enum class FaceStatus
+    {
+        Above,
+        Below,
+        Inside,
+        Cross,
+    };
+    static FaceStatus CalcFacePlaneStatus(const Polyhedron::Face& face, const sm::Plane& plane);
+
 }; // Utility
 
 }

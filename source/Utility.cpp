@@ -21,6 +21,8 @@ std::vector<sm::vec2> dump_vertices(const he::loop2& loop)
     return verts;
 }
 
+const float POINT_STATUS_EPSILON = 0.0001f;
+
 }
 
 namespace he
@@ -85,6 +87,70 @@ sm::vec3 Utility::CalcFaceNorm(const Polyhedron::Face& face)
             return -CalcLoopNorm(*hole);
         }
         return sm::vec3(0, 1, 0);
+    }
+}
+
+Utility::PointStatus 
+Utility::CalcPointPlaneStatus(const sm::Plane& plane, const sm::vec3& pos)
+{
+    const float dist = plane.GetDistance(pos);
+    if (dist > POINT_STATUS_EPSILON) {
+        return PointStatus::Above;
+    } else if (dist < -POINT_STATUS_EPSILON) {
+        return PointStatus::Below;
+    } else {
+        return PointStatus::Inside;
+    }
+}
+
+Utility::FaceStatus 
+Utility::CalcFacePlaneStatus(const Polyhedron::Face& face, const sm::Plane& plane)
+{
+    size_t above = 0, below = 0, inside = 0;
+
+    auto count_loop = [&](const loop3& loop) 
+    {
+        auto first_e = loop.edge;
+        auto curr_e = first_e;
+        do {
+            auto st = CalcPointPlaneStatus(plane, curr_e->vert->position);
+            switch (st)
+            {
+            case PointStatus::Above:
+                ++above;
+                break;
+            case PointStatus::Below:
+                ++below;
+                break;
+            case PointStatus::Inside:
+                ++inside;
+                break;
+            default:
+                assert(0);
+            }
+
+            curr_e = curr_e->next;
+        } while (first_e != curr_e);
+    };
+
+    if (face.border) {
+        count_loop(*face.border);
+    }
+    for (auto& hole : face.holes) {
+        count_loop(*hole);
+    }
+
+    if (above != 0 && below == 0) {
+        return Utility::FaceStatus::Above;
+    } else if (below != 0 && above == 0) {
+        return Utility::FaceStatus::Below;
+    } else if (inside != 0 && above == 0 && below == 0) {
+        return Utility::FaceStatus::Inside;
+    } else if (above != 0 && below != 0) {
+        return Utility::FaceStatus::Cross;
+    } else {
+        assert(0);
+        return Utility::FaceStatus::Cross;
     }
 }
 

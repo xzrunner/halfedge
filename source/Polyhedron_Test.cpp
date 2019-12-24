@@ -6,14 +6,12 @@
 namespace
 {
 
-const float POINT_STATUS_EPSILON = 0.0001f;
-
 bool is_pos_in_loop(const sm::vec3& pos, const he::loop3& loop)
 {
     sm::Plane plane;
     he::Utility::LoopToPlane(loop, plane);
     const float dist = plane.GetDistance(pos);
-    return dist < POINT_STATUS_EPSILON;
+    return dist < he::Utility::POINT_STATUS_EPSILON;
 }
 
 }

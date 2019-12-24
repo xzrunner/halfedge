@@ -1,4 +1,5 @@
 #include "halfedge/Polyhedron.h"
+#include "halfedge/Utility.h"
 
 #include <set>
 #include <map>
@@ -6,26 +7,7 @@
 namespace
 {
 
-const float POINT_STATUS_EPSILON = 0.0001f;
-
-enum class PointStatus
-{
-    Above,
-    Below,
-    Inside,
-};
-
-PointStatus CalcPointStatus(const sm::Plane& plane, const sm::vec3& pos)
-{
-    const float dist = plane.GetDistance(pos);
-    if (dist > POINT_STATUS_EPSILON) {
-        return PointStatus::Above;
-    } else if (dist < -POINT_STATUS_EPSILON) {
-        return PointStatus::Below;
-    } else {
-        return PointStatus::Inside;
-    }
-}
+using PointStatus = he::Utility::PointStatus;
 
 PointStatus CheckIntersects(const sm::Plane& plane, const he::DoublyLinkedList<he::vert3>& verts)
 {
@@ -36,7 +18,7 @@ PointStatus CheckIntersects(const sm::Plane& plane, const he::DoublyLinkedList<h
     he::vert3* first = verts.Head();
     he::vert3* v = first;
     do {
-        auto status = CalcPointStatus(plane, v->position);
+        auto status = he::Utility::CalcPointPlaneStatus(plane, v->position);
         switch (status)
         {
         case PointStatus::Above:
@@ -69,8 +51,8 @@ he::edge3* FindInitialIntersectingEdge(const sm::Plane& plane, const he::DoublyL
     auto first = edges.Head();
     auto curr = first;
     do {
-        auto os = CalcPointStatus(plane, curr->vert->position);
-        auto ds = CalcPointStatus(plane, curr->next->vert->position);
+        auto os = he::Utility::CalcPointPlaneStatus(plane, curr->vert->position);
+        auto ds = he::Utility::CalcPointPlaneStatus(plane, curr->next->vert->position);
 
         if ((os == PointStatus::Inside && ds == PointStatus::Above) ||
             (os == PointStatus::Below  && ds == PointStatus::Above)) {
@@ -86,10 +68,10 @@ he::edge3* FindInitialIntersectingEdge(const sm::Plane& plane, const he::DoublyL
         if (os == PointStatus::Inside && ds == PointStatus::Inside)
         {
             auto next = curr->next;
-            auto ss = CalcPointStatus(plane, next->next->vert->position);
+            auto ss = he::Utility::CalcPointPlaneStatus(plane, next->next->vert->position);
             while (ss == PointStatus::Inside && next != curr) {
                 next = next->next;
-                ss = CalcPointStatus(plane, next->next->vert->position);
+                ss = he::Utility::CalcPointPlaneStatus(plane, next->next->vert->position);
             }
 
             if (ss == PointStatus::Inside) {
@@ -110,9 +92,9 @@ he::edge3* FindInitialIntersectingEdge(const sm::Plane& plane, const he::DoublyL
 }
 
 he::edge3* SplitEdgeByPlane(he::edge3* edge, const sm::Plane& plane,
-                           he::DoublyLinkedList<he::vert3>& verts,
-                           he::DoublyLinkedList<he::edge3>& edges,
-                           size_t& next_vert_id, size_t& next_edge_id)
+                            he::DoublyLinkedList<he::vert3>& verts,
+                            he::DoublyLinkedList<he::edge3>& edges,
+                            size_t& next_vert_id, size_t& next_edge_id)
 {
     auto& s_pos = edge->vert->position;
     auto& e_pos = edge->next->vert->position;
@@ -120,8 +102,8 @@ he::edge3* SplitEdgeByPlane(he::edge3* edge, const sm::Plane& plane,
     auto s_dist = plane.GetDistance(s_pos);
     auto e_dist = plane.GetDistance(e_pos);
 
-    assert(fabs(s_dist) > POINT_STATUS_EPSILON
-        && fabs(e_dist) > POINT_STATUS_EPSILON
+    assert(fabs(s_dist) > he::Utility::POINT_STATUS_EPSILON
+        && fabs(e_dist) > he::Utility::POINT_STATUS_EPSILON
         && s_dist * e_dist < 0);
 
     float dot = s_dist / (s_dist - e_dist);
@@ -204,8 +186,8 @@ he::edge3* IntersectWithPlane(he::edge3* first_boundary_edge, const sm::Plane& p
 
     he::edge3* curr_boundary_edge = first_boundary_edge;
     do {
-        PointStatus os = CalcPointStatus(plane, curr_boundary_edge->vert->position);
-        PointStatus ds = CalcPointStatus(plane, curr_boundary_edge->next->vert->position);
+        PointStatus os = he::Utility::CalcPointPlaneStatus(plane, curr_boundary_edge->vert->position);
+        PointStatus ds = he::Utility::CalcPointPlaneStatus(plane, curr_boundary_edge->next->vert->position);
 
         if (os == PointStatus::Inside)
         {
@@ -223,7 +205,7 @@ he::edge3* IntersectWithPlane(he::edge3* first_boundary_edge, const sm::Plane& p
             curr_boundary_edge = curr_boundary_edge->next;
 
             auto new_vertex = curr_boundary_edge->vert;
-            assert(CalcPointStatus(plane, new_vertex->position) == PointStatus::Inside);
+            assert(he::Utility::CalcPointPlaneStatus(plane, new_vertex->position) == PointStatus::Inside);
         }
         else
         {
@@ -242,7 +224,7 @@ he::edge3* IntersectWithPlane(he::edge3* first_boundary_edge, const sm::Plane& p
     }
     else if (seam_ori->next != seam_dst)
     {
-        auto os = CalcPointStatus(plane, seam_ori->next->vert->position);
+        auto os = he::Utility::CalcPointPlaneStatus(plane, seam_ori->next->vert->position);
         assert(os != PointStatus::Inside);
         if (os == PointStatus::Below) {
             IntersectWithPlane(seam_ori, seam_dst, edges, loops, next_edge_id, next_loop_id, faces);
@@ -263,8 +245,8 @@ he::edge3* FindNextIntersectingEdge(he::edge3* search_from, const sm::Plane& pla
 
         auto cd = curr_edge->next->vert;
         auto po = curr_edge->prev->vert;
-        auto cds = CalcPointStatus(plane, cd->position);
-        auto pos = CalcPointStatus(plane, po->position);
+        auto cds = he::Utility::CalcPointPlaneStatus(plane, cd->position);
+        auto pos = he::Utility::CalcPointPlaneStatus(plane, po->position);
         if ((cds == PointStatus::Inside) ||
             (cds == PointStatus::Below && pos == PointStatus::Above) ||
             (cds == PointStatus::Above && pos == PointStatus::Below)) {
@@ -565,7 +547,7 @@ void DeleteByPlane(const sm::Plane& plane, bool del_above,
     auto curr_vert = verts.Head();
     auto first_vert = curr_vert;
     do {
-        auto st = CalcPointStatus(plane, curr_vert->position);
+        auto st = he::Utility::CalcPointPlaneStatus(plane, curr_vert->position);
         if ((st == PointStatus::Above && del_above) ||
             (st == PointStatus::Below && !del_above)) {
             curr_vert->ids.MakeInvalid();
