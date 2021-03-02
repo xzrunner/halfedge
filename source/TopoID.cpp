@@ -1,6 +1,22 @@
 #include "halfedge/TopoID.h"
 
+#ifndef NO_BOOST
 #include <boost/functional/hash.hpp>
+#endif // NO_BOOST
+
+namespace
+{
+
+#ifdef NO_BOOST
+template <class T>
+inline void hash_combine(std::size_t& seed, const T& v)
+{
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+#endif // NO_BOOST
+
+}
 
 namespace he
 {
@@ -55,7 +71,11 @@ void TopoID::UpdateUID()
 {
     m_uid = 0xffffffff;
     for (auto& id : m_path) {
+#ifdef NO_BOOST
+        hash_combine(m_uid, id);
+#else
         boost::hash_combine(m_uid, id);
+#endif // NO_BOOST
     }
 }
 

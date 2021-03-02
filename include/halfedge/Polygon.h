@@ -2,15 +2,14 @@
 
 #include "halfedge/DoublyLinkedList.h"
 #include "halfedge/HalfEdge.h"
-
-#include <boost/noncopyable.hpp>
+#include "halfedge/noncopyable.h"
 
 #include <map>
 
 namespace he
 {
 
-class Polygon : boost::noncopyable
+class Polygon : noncopyable
 {
 public:
     struct Face

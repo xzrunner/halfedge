@@ -4,15 +4,14 @@
 #include "halfedge/HalfEdge.h"
 #include "halfedge/typedef.h"
 #include "halfedge/TopoID.h"
+#include "halfedge/noncopyable.h"
 
 #include <SM_Vector.h>
-
-#include <boost/noncopyable.hpp>
 
 namespace he
 {
 
-class Polyline : boost::noncopyable
+class Polyline : noncopyable
 {
 public:
     Polyline() {}
