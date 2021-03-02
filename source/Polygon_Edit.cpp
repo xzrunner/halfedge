@@ -4,6 +4,8 @@
 #include <SM_Test.h>
 #include <SM_Calc.h>
 
+#include <iterator>
+
 namespace
 {
 
