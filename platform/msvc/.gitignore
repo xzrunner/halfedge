@@ -1,5 +1,5 @@
 halfedge/
 projects/*
 
-!projects/halfedge.vcxproj
-!projects/halfedge.vcxproj.filters
+!projects/*.vcxproj
+!projects/*.vcxproj.filters

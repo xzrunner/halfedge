@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\..\source\Polyhedron.cpp">
+      <Filter>3d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\Polyhedron_Boolean.cpp">
+      <Filter>3d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\Polyhedron_Clip.cpp">
+      <Filter>3d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\Polyhedron_Edit.cpp">
+      <Filter>3d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\Polyhedron_Test.cpp">
+      <Filter>3d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\Polyline.cpp">
+      <Filter>3d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\HalfEdge.cpp">
+      <Filter>dataset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\Utility.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\TopoID.cpp">
+      <Filter>dataset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\Polygon.cpp">
+      <Filter>2d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\Polygon_Edit.cpp">
+      <Filter>2d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\source\Polyhedron_Build.cpp">
+      <Filter>3d</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\include\halfedge\Polyhedron.h">
+      <Filter>3d</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\halfedge\Polyline.h">
+      <Filter>3d</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\halfedge\DoublyLinkedList.h">
+      <Filter>dataset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\halfedge\HalfEdge.h">
+      <Filter>dataset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\halfedge\Utility.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\halfedge\typedef.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\halfedge\TopoID.h">
+      <Filter>dataset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\halfedge\Polygon.h">
+      <Filter>2d</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\halfedge\noncopyable.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\include\halfedge\DoublyLinkedList.inl">
+      <Filter>dataset</Filter>
+    </None>
+    <None Include="..\..\..\include\halfedge\HalfEdge.inl">
+      <Filter>dataset</Filter>
+    </None>
+    <None Include="..\..\..\include\halfedge\Utility.inl">
+      <Filter>utility</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="3d">
+      <UniqueIdentifier>{8e91b2ed-77da-4343-98d8-eec0666091f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dataset">
+      <UniqueIdentifier>{e9245260-d782-43be-9826-e488238e1c44}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="2d">
+      <UniqueIdentifier>{9729b0be-7f42-41ea-924b-680065cbd367}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utility">
+      <UniqueIdentifier>{251c69b1-ad45-40c4-adb2-0c3bfbfc7547}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
