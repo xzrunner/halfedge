@@ -21,7 +21,7 @@ class Polyhedron
 public:
     struct Face
     {
-        Face(loop3* border = nullptr, std::vector<loop3*>& holes = std::vector<loop3*>())
+        Face(loop3* border = nullptr, std::vector<loop3*> holes = std::vector<loop3*>())
             : border(border)
             , holes(holes)
         {
