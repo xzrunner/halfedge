@@ -14,7 +14,7 @@ class Polygon : noncopyable
 public:
     struct Face
     {
-        Face(loop2* border = nullptr, std::vector<loop2*>& holes = std::vector<loop2*>())
+        Face(loop2* border = nullptr, std::vector<loop2*> holes = std::vector<loop2*>())
             : border(border)
             , holes(holes)
         {
