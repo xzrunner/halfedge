@@ -37,9 +37,9 @@ Polyhedron& Polyhedron::operator = (const Polyhedron& poly)
     auto verts = DumpVertices(poly.m_verts, vert2idx);
 
     std::vector<in_face> faces;
-    faces.resize(m_faces.size());
+    faces.resize(poly.m_faces.size());
     size_t idx = 0;
-    for (auto& face : m_faces)
+    for (auto& face : poly.m_faces)
     {
         std::vector<in_loop> holes;
         holes.reserve(face.holes.size());
