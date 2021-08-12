@@ -39,6 +39,9 @@ DoIntersect(const he::Polyhedron& poly0, const he::Polyhedron& poly1)
         he::Utility::LoopToPlane(*curr_l, plane);
 
         bool succ = ret->Clip(plane, he::Polyhedron::KeepType::KeepBelow, true);
+        if (!succ) {
+            return nullptr;
+        }
         if (ret->GetFaces().empty()) {
             return ret;
         }

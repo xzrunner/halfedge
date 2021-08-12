@@ -635,6 +635,10 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
     if (seam_face && keep == KeepType::KeepBelow)
     {
         for (auto& s : seam) {
+            if (!s->twin) {
+                return false;
+            }
+
             s = s->twin;
         }
         std::reverse(seam.begin(), seam.end());
