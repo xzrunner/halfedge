@@ -1,6 +1,8 @@
 #include "halfedge/Polyhedron.h"
 #include "halfedge/Utility.h"
 
+#include <iterator>
+
 namespace
 {
 
@@ -83,13 +85,19 @@ void DoSubtract(std::vector<he::PolyhedronPtr>& result, const std::vector<he::Po
 namespace he
 {
 
-PolyhedronPtr Polyhedron::Union(const Polyhedron& other) const
+std::vector<PolyhedronPtr> Polyhedron::Union(const Polyhedron& other) const
 {
-    if (m_faces.size() <= 3 || other.m_faces.size() <= 3) {
-        return nullptr;
+    auto intersected = Intersect(other);
+    if (!intersected || intersected->GetFaces().empty()) {
+        return { std::make_shared<he::Polyhedron>(*this), std::make_shared<he::Polyhedron>(other) };
     }
+ 
+    auto ret = Subtract(*intersected);
 
-    return nullptr;
+    auto polys = other.Subtract(*intersected);
+    std::copy(polys.begin(), polys.end(), std::back_inserter(ret));
+
+    return ret;
 }
 
 PolyhedronPtr Polyhedron::Intersect(const Polyhedron& other) const

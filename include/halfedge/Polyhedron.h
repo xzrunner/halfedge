@@ -62,7 +62,7 @@ public:
 
     // boolean
 
-    PolyhedronPtr Union(const Polyhedron& other) const;
+    std::vector<PolyhedronPtr> Union(const Polyhedron& other) const;
     PolyhedronPtr Intersect(const Polyhedron& other) const;
     std::vector<PolyhedronPtr> Subtract(const Polyhedron& subtrahend) const;
 
