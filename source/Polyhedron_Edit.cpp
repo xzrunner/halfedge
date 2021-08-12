@@ -468,9 +468,6 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
                 auto p2 = sm::Plane(p0.normal.Cross(prev_edge->next->vert->position - prev_edge->vert->position), itr.first->position);
                 sm::vec3 cross;
                 bool intersect = sm::intersect_planes(p0, p1, p2, &cross);
-                if (cross.y > 0) {
-                    int zz = 0;
-                }
                 assert(intersect);
                 itr.second->position = cross;
             }
@@ -484,9 +481,6 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
                     p2 = sm::Plane(p0.normal.Cross(prev_edge->next->vert->position - prev_edge->vert->position), itr.first->position);
                     sm::vec3 cross;
                     bool intersect = sm::intersect_planes(p0, p1, p2, &cross);
-                    if (cross.y > 0) {
-                        int zz = 0;
-                    }
                     assert(intersect);
                     itr.second->position = cross;
                 }
