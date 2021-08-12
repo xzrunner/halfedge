@@ -46,7 +46,8 @@ PointStatus CheckIntersects(const sm::Plane& plane, const he::DoublyLinkedList<h
     }
 }
 
-he::edge3* FindInitialIntersectingEdge(const sm::Plane& plane, const he::DoublyLinkedList<he::edge3>& edges)
+// bool: intersected
+std::pair<bool, he::edge3*> FindInitialIntersectingEdge(const sm::Plane& plane, const he::DoublyLinkedList<he::edge3>& edges)
 {
     auto first = edges.Head();
     auto curr = first;
@@ -57,12 +58,12 @@ he::edge3* FindInitialIntersectingEdge(const sm::Plane& plane, const he::DoublyL
         if ((os == PointStatus::Inside && ds == PointStatus::Above) ||
             (os == PointStatus::Below  && ds == PointStatus::Above)) {
             if (curr->twin) {
-                return curr->twin;
+                return { true, curr->twin };
             }
         }
         if ((os == PointStatus::Above  && ds == PointStatus::Inside) ||
             (os == PointStatus::Above  && ds == PointStatus::Below)) {
-            return curr;
+            return { true, curr };
         }
 
         if (os == PointStatus::Inside && ds == PointStatus::Inside)
@@ -75,20 +76,20 @@ he::edge3* FindInitialIntersectingEdge(const sm::Plane& plane, const he::DoublyL
             }
 
             if (ss == PointStatus::Inside) {
-                return nullptr;
+                return { false, curr };
             }
 
             if (ss == PointStatus::Below) {
-                return curr->twin;
+                return { true, curr->twin };
             } else {
-                return curr;
+                return { true, curr };
             }
         }
 
         curr = curr->linked_next;
     } while (curr != first);
 
-    return nullptr;
+    return { true, nullptr };
 }
 
 he::edge3* SplitEdgeByPlane(he::edge3* edge, const sm::Plane& plane,
@@ -300,17 +301,28 @@ std::vector<he::edge3*> IntersectWithPlane(const sm::Plane& plane,
 {
     std::vector<he::edge3*> seam;
 
-    auto init_edge = FindInitialIntersectingEdge(plane, edges);
-    assert(init_edge);
+    auto find = FindInitialIntersectingEdge(plane, edges);
+    if (find.first) 
+    {
+        assert(find.second);
 
-    auto start_edge = IntersectWithPlane(init_edge, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id, faces);
-    seam = IntersectWithPlaneImpl(start_edge, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id, faces);
-    if (seam.empty()) {
-        seam = IntersectWithPlaneImpl(start_edge->twin, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id, faces);
+        auto init_edge = find.second;
+
+        auto start_edge = IntersectWithPlane(init_edge, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id, faces);
+        seam = IntersectWithPlaneImpl(start_edge, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id, faces);
+        if (seam.empty() && start_edge->twin) {
+            seam = IntersectWithPlaneImpl(start_edge->twin, plane, verts, edges, loops, next_vert_id, next_edge_id, next_loop_id, faces);
+        }
     }
-
-    if (seam.empty()) {
-        seam.push_back(start_edge);
+    else
+    {
+        auto first = find.second;
+        seam.push_back(first);
+        auto next = first->next;
+        while (next != first) {
+            seam.push_back(next);
+            next = next->next;
+        }
     }
 
     return seam;
