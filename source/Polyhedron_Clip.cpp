@@ -628,10 +628,6 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
         return false;
     }
 
-    if (keep == KeepType::KeepAll) {
-        return true;
-    }
-
     if (seam_face && keep == KeepType::KeepBelow)
     {
         for (auto& s : seam) {
@@ -679,7 +675,9 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
         new_loop->edge = new_edges[0];
     }
 
-    DeleteByPlane(plane, keep == KeepType::KeepBelow, m_verts, m_edges, m_loops, m_faces);
+    if (keep != KeepType::KeepAll) {
+        DeleteByPlane(plane, keep == KeepType::KeepBelow, m_verts, m_edges, m_loops, m_faces);
+    }
 
     m_aabb = CalcAABB(m_verts);
 
