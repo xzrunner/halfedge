@@ -50,25 +50,21 @@ void Utility::LoopToVertices(const loop3& loop, std::vector<sm::vec3>& border)
 
 void Utility::LoopToPlane(const loop3& loop, sm::Plane& plane)
 {
+    sm::vec3 normal;
+
     auto curr_edge = loop.edge;
     auto first_edge = curr_edge;
     do {
         auto& v0 = curr_edge->vert->position;
         auto& v1 = curr_edge->next->vert->position;
-        auto& v2 = curr_edge->next->next->vert->position;
 
-        auto angle = sm::get_angle(v1, v0, v2);
-        if (angle > std::numeric_limits<float>::epsilon() &&
-            angle < SM_PI - std::numeric_limits<float>::epsilon()) {
-            plane.Build(v0, v1, v2);
-            plane.Flip();
-            return;
-        }
+        normal += v0.Cross(v1);
 
         curr_edge = curr_edge->next;
     } while (curr_edge != first_edge);
 
-    assert(0);
+    plane.Build(normal, first_edge->vert->position);
+    plane.Flip();
 }
 
 sm::vec3 Utility::CalcLoopNorm(const loop3& loop)
