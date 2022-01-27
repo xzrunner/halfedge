@@ -32,7 +32,7 @@ void BuildMapVert2Edges(const he::Polyhedron& src, std::vector<std::pair<he::ver
     } while (edge_curr != edge_first);
 }
 
-void BuildMapVert2Planes(const he::loop3& loop, size_t plane_idx, std::map<he::vert3*, std::vector<size_t>>& dst)
+void BuildMapVert2Planes(const he::loop3& loop, size_t plane_idx, std::map<he::vert3*, std::set<size_t>>& dst)
 {
     auto first_e = loop.edge;
     auto curr_e = first_e;
@@ -41,7 +41,7 @@ void BuildMapVert2Planes(const he::loop3& loop, size_t plane_idx, std::map<he::v
         if (itr == dst.end()) {
             dst.insert({ curr_e->vert, { plane_idx } });
         } else {
-            itr->second.push_back(plane_idx);
+            itr->second.insert(plane_idx);
         }
 
         curr_e = curr_e->next;
@@ -395,7 +395,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
     const bool add_side  = create_face[ExtrudeSide];
 
     std::vector<sm::Plane> planes;
-    std::map<he::vert3*, std::vector<size_t>> vert2planes;
+    std::map<he::vert3*, std::set<size_t>> vert2planes;
     planes.reserve(m_faces.size());
     for (auto& face : m_faces)
     {
@@ -458,7 +458,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
         if (p_ids.size() < 3)
         {
             assert(!p_ids.empty());
-            auto& p0 = planes[p_ids[0]];
+            auto& p0 = planes[*p_ids.begin()];
             auto edge = itr.first->edge;
             auto prev_edge = edge->prev;
             assert(edge && prev_edge);
@@ -474,7 +474,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
             else
             {
                 assert(p_ids.size() == 2);
-                auto& p1 = planes[p_ids[1]];
+                auto& p1 = planes[*++p_ids.begin()];
                 auto p2 = sm::Plane(p0.normal.Cross(edge->next->vert->position - edge->vert->position), itr.first->position);
                 if (!sm::intersect_planes(p0, p1, p2, &itr.second->position))
                 {
@@ -488,9 +488,10 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
         }
         else
         {
-            auto& p0 = planes[p_ids[0]];
-            auto& p1 = planes[p_ids[1]];
-            auto& p2 = planes[p_ids[2]];
+            auto i = p_ids.begin();
+            auto& p0 = planes[*i++];
+            auto& p1 = planes[*i++];
+            auto& p2 = planes[*i++];
             bool intersect = sm::intersect_planes(p0, p1, p2, &itr.second->position);
             assert(intersect);
         }
