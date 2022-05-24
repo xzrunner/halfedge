@@ -659,10 +659,10 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
     }
     if (add_side && add_back)
     {
-        assert(side_faces.size() == new_front_faces.size());
+        assert(side_faces.size() == new_back_faces.size());
         for (size_t i = 0, n = side_faces.size(); i < n; ++i)
         {
-            auto& front = new_front_faces[i];
+            auto& front = new_back_faces[i];
             auto& sides = side_faces[i];
             assert(sides.size() == front.holes.size() + 1);
 
@@ -670,7 +670,7 @@ bool Polyhedron::Extrude(float distance, const std::vector<TopoID>& face_ids, bo
             auto first_e = front.border->edge;
             auto curr_e = first_e;
             do {
-                edge_make_pair(sides[j][k]->edge->next->next, curr_e->prev);
+                edge_make_pair(sides[j][k]->edge, curr_e->prev);
 
                 ++k;
                 curr_e = curr_e->next;
