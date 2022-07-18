@@ -16,8 +16,20 @@ Edge<T>* Edge<T>::Connect(Edge<T>* next_edge)
 template<typename T>
 void edge_make_pair(Edge<T>* e0, Edge<T>* e1)
 {
+    assert(!e0->twin || e0->twin == e1);
+    assert(!e1->twin || e1->twin == e0);
+
     e0->twin = e1;
     e1->twin = e0;
+}
+
+template<typename T>
+void edge_del_pair(Edge<T>* e)
+{
+    if (e->twin) {
+        e->twin->twin = nullptr;
+        e->twin = nullptr;
+    }
 }
 
 template<typename T>

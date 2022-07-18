@@ -61,9 +61,7 @@ void RemoveLoop(he::Polyhedron& poly, he::loop3* loop)
     do {
         del_edges.push_back(curr_edge);
         curr_edge->ids.MakeInvalid();
-        if (curr_edge->twin && curr_edge->twin->twin == curr_edge) {
-            curr_edge->twin->twin = nullptr;
-        }
+        edge_del_pair(curr_edge);
         const_cast<he::DoublyLinkedList<he::edge3>&>(poly.GetEdges()).Remove(curr_edge);
 
         curr_edge = curr_edge->next;

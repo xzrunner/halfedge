@@ -1,6 +1,8 @@
 #include "halfedge/Polyhedron.h"
 #include "halfedge/Utility.h"
 
+#include <SM_Calc.h>
+
 #include <set>
 #include <map>
 
@@ -132,6 +134,8 @@ he::edge3* SplitEdgeByPlane(he::edge3* edge, const sm::Plane& plane,
         auto twin_edge_next = twin_edge->next;
         twin_edge->Connect(new_twin_edge)->Connect(twin_edge_next);
 
+        he::edge_del_pair(edge);
+        he::edge_del_pair(twin_edge);
         edge_make_pair(new_edge, twin_edge);
         edge_make_pair(new_twin_edge, edge);
     }
@@ -151,6 +155,7 @@ void IntersectWithPlane(he::edge3* old_boundary_first,
     auto old_loop = old_boundary_first->loop;
     he::edge3* old_boundary_splitter = new he::edge3(new_boundary_first->vert, old_loop, next_edge_id++);
     he::edge3* new_boundary_splitter = new he::edge3(old_boundary_first->vert, old_loop, next_edge_id++);
+
     he::edge_make_pair(old_boundary_splitter, new_boundary_splitter);
 
     auto new_boundary_first_prev = new_boundary_first->prev;
@@ -239,18 +244,28 @@ he::edge3* IntersectWithPlane(he::edge3* first_boundary_edge, const sm::Plane& p
 
 he::edge3* FindNextIntersectingEdge(he::edge3* search_from, const sm::Plane& plane)
 {
-    auto curr_edge = search_from->next;
-    auto stop_edge = search_from->twin;
-    do {
-        assert(curr_edge != stop_edge);
-
+    auto test_edge = [](he::edge3* curr_edge, const sm::Plane& plane) -> bool
+    {
         auto cd = curr_edge->next->vert;
         auto po = curr_edge->prev->vert;
+
         auto cds = he::Utility::CalcPointPlaneStatus(plane, cd->position);
         auto pos = he::Utility::CalcPointPlaneStatus(plane, po->position);
         if ((cds == PointStatus::Inside) ||
             (cds == PointStatus::Below && pos == PointStatus::Above) ||
             (cds == PointStatus::Above && pos == PointStatus::Below)) {
+            return true;
+        } else {
+            return false;
+        }
+    };
+
+    auto curr_edge = search_from->next;
+    auto stop_edge = search_from->twin;
+    do {
+        assert(curr_edge != stop_edge);
+
+        if (test_edge(curr_edge, plane)) {
             return curr_edge;
         }
 
@@ -259,6 +274,10 @@ he::edge3* FindNextIntersectingEdge(he::edge3* search_from, const sm::Plane& pla
         }
         curr_edge = curr_edge->twin->next;
     } while (curr_edge != stop_edge);
+
+    if (test_edge(stop_edge, plane)) {
+        return stop_edge;
+    }
 
     return nullptr;
 }
@@ -470,7 +489,7 @@ void FixEdgeInvalid(he::DoublyLinkedList<he::edge3>& edges)
             assert(curr_edge->prev->ids.IsValid());
             assert(curr_edge->next->ids.IsValid());
             if (curr_edge->twin && !curr_edge->twin->ids.IsValid()) {
-                curr_edge->twin = nullptr;
+                edge_del_pair(curr_edge);
             }
         }
 
@@ -503,17 +522,38 @@ void FixLoopInvalid(he::DoublyLinkedList<he::loop3>& loops)
     } while (curr_l != first_l);
 }
 
+bool IsLoopValid(const he::loop3* loop)
+{
+    if (!loop->ids.IsValid()) {
+        return false;
+    }
+
+    int num = 0;
+
+    auto first_e = loop->edge;
+    auto curr_e = first_e;
+    do {
+        ++num;
+        curr_e = curr_e->next;
+    } while (curr_e && curr_e != first_e);
+
+    if (num < 3) {
+        return false;
+    }
+
+    return true;
+}
 
 void DeleteInvalid(std::vector<he::Polyhedron::Face>& faces)
 {
     for (auto itr = faces.begin(); itr != faces.end(); )
     {
         bool valid = true;
-        if (!itr->border->ids.IsValid()) {
+        if (!IsLoopValid(itr->border)) {
             valid = false;
         }
         for (auto& hole : itr->holes) {
-            if (!itr->border->ids.IsValid()) {
+            if (!IsLoopValid(hole)) {
                 valid = false;
                 break;
             }
@@ -584,6 +624,24 @@ void DeleteByPlane(const sm::Plane& plane, bool del_above,
     DeleteInvalid(verts);
     DeleteInvalid(edges);
     DeleteInvalid(loops);
+
+    DeleteInvalid(faces);
+}
+
+int GetNoTwinEdgesNum(const he::DoublyLinkedList<he::edge3>& edges)
+{
+    int ret = 0;
+
+    auto first = edges.Head();
+    auto curr = first;
+    do {
+        if (!curr->twin || !curr->twin->ids.IsValid()) {
+            ++ret;
+        }
+        curr = curr->linked_next;
+    } while (curr != first);
+
+    return ret;
 }
 
 sm::cube CalcAABB(const he::DoublyLinkedList<he::vert3>& verts)
@@ -600,6 +658,33 @@ sm::cube CalcAABB(const he::DoublyLinkedList<he::vert3>& verts)
         curr_vertex = curr_vertex->linked_next;
     } while (curr_vertex != first_vertex);
     return aabb;
+}
+
+void fix_seam_order(std::vector<he::edge3*>& seams, const sm::Plane& plane, he::Polyhedron::KeepType keep)
+{
+    std::vector<sm::vec3> loop;
+    loop.reserve(seams.size());
+    for (auto& e : seams) {
+        loop.push_back(e->vert->position);
+    }
+
+    auto need_dir = plane.normal;
+    if (keep == he::Polyhedron::KeepType::KeepAbove) {
+        need_dir = -need_dir;
+    }
+
+    auto loop_dir = sm::calc_face_normal(loop);
+    if (need_dir.Dot(loop_dir) > 0)
+    {
+        for (auto& s : seams) {
+            if (!s->twin) {
+                return;
+            }
+
+            s = s->twin;
+        }
+        std::reverse(seams.begin(), seams.end());
+    }
 }
 
 }
@@ -628,20 +713,10 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
         return false;
     }
 
-    if (seam_face && keep == KeepType::KeepBelow)
-    {
-        for (auto& s : seam) {
-            if (!s->twin) {
-                return false;
-            }
-
-            s = s->twin;
-        }
-        std::reverse(seam.begin(), seam.end());
-    }
-
     if (seam_face)
     {
+        fix_seam_order(seam, plane, keep);
+
 //        assert(!seam.front()->twin);
 
         auto new_loop = new loop3(m_next_loop_id++);
@@ -653,13 +728,11 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
         for (int i = 0, n = seam.size(); i < n; ++i)
         {
             edge3* new_edge = new edge3(seam[(i + 1) % n]->vert, new_loop, m_next_edge_id++);
+
+            edge_del_pair(seam[i]);
             edge_make_pair(new_edge, seam[i]);
             new_edges.push_back(new_edge);
             m_edges.Append(new_edge);
-        }
-
-        for (auto& e : seam) {
-            assert(e->next->vert == e->twin->vert);
         }
 
         if (new_edges.size() > 1) {
@@ -668,16 +741,14 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
             }
         }
 
-        for (auto& e : seam) {
-            assert(e->next->vert == e->twin->vert);
-        }
-
         new_loop->edge = new_edges[0];
     }
 
     if (keep != KeepType::KeepAll) {
         DeleteByPlane(plane, keep == KeepType::KeepBelow, m_verts, m_edges, m_loops, m_faces);
     }
+
+    assert(GetNoTwinEdgesNum(m_edges) == 0);
 
     m_aabb = CalcAABB(m_verts);
 

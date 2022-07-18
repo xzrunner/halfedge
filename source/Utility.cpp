@@ -64,7 +64,6 @@ void Utility::LoopToPlane(const loop3& loop, sm::Plane& plane)
     } while (curr_edge != first_edge);
 
     plane.Build(normal, first_edge->vert->position);
-    plane.Flip();
 }
 
 sm::vec3 Utility::CalcLoopNorm(const loop3& loop)

@@ -86,6 +86,8 @@ struct Loop
 // edge
 template<typename T>
 void edge_make_pair(Edge<T>* e0, Edge<T>* e1);
+template<typename T>
+void edge_del_pair(Edge<T>* e);
 
 template<typename T>
 void bind_edge_loop(Loop<T>* loop, Edge<T>* edge);
