@@ -51,6 +51,28 @@ Polygon& Polygon::operator = (const Polygon& poly)
     return *this;
 }
 
+const sm::rect& Polygon::GetAABB() const 
+{ 
+    if (!m_aabb.IsValid()) {
+        UpdateAABB();
+    }
+    return m_aabb; 
+}
+
+void Polygon::UpdateAABB() const
+{
+	m_aabb.MakeEmpty();
+
+    auto head = m_verts.Head();
+    if (head) {
+        auto v = head;
+        do {
+            m_aabb.Combine(v->position);
+            v = v->linked_next;
+        } while (v != head);
+    }
+}
+
 void Polygon::Clear()
 {
     m_next_vert_id = 0;

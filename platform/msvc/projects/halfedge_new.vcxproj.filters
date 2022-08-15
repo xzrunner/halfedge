@@ -37,6 +37,9 @@
     <ClCompile Include="..\..\..\source\Polyhedron_Build.cpp">
       <Filter>3d</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\source\Polygon_Clip.cpp">
+      <Filter>2d</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\halfedge\Polyhedron.h">

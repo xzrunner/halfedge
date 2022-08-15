@@ -4,6 +4,8 @@
 #include "halfedge/HalfEdge.h"
 #include "halfedge/noncopyable.h"
 
+#include <SM_Rect.h>
+
 #include <map>
 
 namespace he
@@ -37,6 +39,9 @@ public:
     auto& GetVerts() const { return m_verts; }
     auto& GetEdges() const { return m_edges; }
     auto& GetFaces() const { return m_faces; }
+    
+    const sm::rect& GetAABB() const;
+    void UpdateAABB() const;
 
     enum class KeepType
     {
@@ -45,6 +50,8 @@ public:
         KeepAll,
     };
     bool Offset(float distance, KeepType keep = KeepType::KeepAll);
+
+    bool Clip(const std::vector<sm::vec2>& polyline);
 
 private:
     void Clear();
@@ -62,6 +69,8 @@ private:
     DoublyLinkedList<loop2> m_loops;
 
     std::vector<Face> m_faces;
+
+    mutable sm::rect m_aabb;
 
     static size_t m_next_vert_id;
     static size_t m_next_edge_id;

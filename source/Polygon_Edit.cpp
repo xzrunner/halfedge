@@ -124,7 +124,7 @@ bool Polygon::Offset(float distance, KeepType keep)
     auto append_all = [&](loop2* loop, bool vert)
     {
         auto first_e = loop->edge;
-        auto curr_e = first_e;
+        auto curr_e = first_e; 
         do {
             if (vert) {
                 m_verts.Append(curr_e->vert);
@@ -210,6 +210,8 @@ bool Polygon::Offset(float distance, KeepType keep)
     default:
         assert(0);
     }
+
+    m_aabb.MakeEmpty();
 
     return true;
 }
