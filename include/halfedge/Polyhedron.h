@@ -60,6 +60,9 @@ public:
     };
     bool Clip(const sm::Plane& plane, KeepType keep, bool seam_face = false);
 
+    bool Fork(const sm::Plane& plane, std::vector<he::loop3*>& seam);
+    bool Join(const std::vector<he::loop3*>& seam);
+
     // boolean
 
     std::vector<PolyhedronPtr> Union(const Polyhedron& other) const;

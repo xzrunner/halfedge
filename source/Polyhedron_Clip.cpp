@@ -660,11 +660,11 @@ sm::cube CalcAABB(const he::DoublyLinkedList<he::vert3>& verts)
     return aabb;
 }
 
-void fix_seam_order(std::vector<he::edge3*>& seams, const sm::Plane& plane, he::Polyhedron::KeepType keep)
+void fix_seam_order(std::vector<he::edge3*>& seam, const sm::Plane& plane, he::Polyhedron::KeepType keep)
 {
     std::vector<sm::vec3> loop;
-    loop.reserve(seams.size());
-    for (auto& e : seams) {
+    loop.reserve(seam.size());
+    for (auto& e : seam) {
         loop.push_back(e->vert->position);
     }
 
@@ -676,15 +676,114 @@ void fix_seam_order(std::vector<he::edge3*>& seams, const sm::Plane& plane, he::
     auto loop_dir = sm::calc_face_normal(loop);
     if (need_dir.Dot(loop_dir) > 0)
     {
-        for (auto& s : seams) {
+        for (auto& s : seam) {
             if (!s->twin) {
                 return;
             }
 
             s = s->twin;
         }
-        std::reverse(seams.begin(), seams.end());
+        std::reverse(seam.begin(), seam.end());
     }
+}
+
+void rm_face(he::loop3* loop, std::vector<he::Polyhedron::Face>& faces)
+{
+    for (auto itr = faces.begin(); itr != faces.end(); ++itr)
+    {
+        if (itr->border == loop) {
+            faces.erase(itr);
+            break;
+        }
+    }
+}
+
+void sew_seam(const he::loop3* cover, const he::loop3* cover2,  
+              he::DoublyLinkedList<he::loop3>& loops,
+              he::DoublyLinkedList<he::edge3>& edges,
+              he::DoublyLinkedList<he::vert3>& verts,
+              std::vector<he::Polyhedron::Face>& faces)
+{
+    std::vector<he::edge3*> edges0, edges1;
+
+    auto curr_edge = cover->edge;
+    auto first_edge = curr_edge;
+    do {
+        edges0.push_back(curr_edge);
+        curr_edge = curr_edge->next;
+    } while (curr_edge != first_edge);
+
+    curr_edge = cover2->edge;
+    first_edge = curr_edge;
+    do {
+        edges1.push_back(curr_edge);
+        curr_edge = curr_edge->next;
+    } while (curr_edge != first_edge);
+
+    std::vector<he::edge3*> del_edges;
+
+    assert(edges0.size() == edges1.size());
+    for (int i = 0, n = edges0.size(); i < n; ++i)
+    {
+        auto p0 = edges0[i]->twin->prev->vert->position;
+        auto n0 = edges0[i]->twin->next->vert->position;
+        auto p1 = edges1[i]->twin->prev->vert->position;
+        auto n1 = edges1[i]->twin->next->vert->position;
+
+        assert(p0.x == n1.x && p0.z == n1.z
+            && p1.x == n0.x && p1.z == n0.z);
+
+        edges0[i]->twin->next->vert->position = edges1[i]->twin->prev->vert->position;
+        assert(edges1[i]->twin->prev->prev->twin->vert == edges1[i]->twin->prev->vert);
+        edges1[i]->twin->prev->prev->twin->vert = edges0[i]->twin->next->vert;
+        assert(edges1[i]->twin->prev->twin->next->vert == edges1[i]->twin->prev->vert);
+        edges1[i]->twin->prev->twin->next->vert = edges0[i]->twin->next->vert;
+
+        del_edges.push_back(edges1[i]->twin->prev);
+        del_edges.push_back(edges1[i]->twin->next);
+
+        edges0[i]->twin->prev->Connect(edges1[i]->twin->next->next);
+        edges1[i]->twin->prev->prev->Connect(edges0[i]->twin->next);
+
+        verts.Remove(edges1[i]->twin->prev->vert);
+        verts.Remove(edges1[i]->twin->next->vert);
+
+        rm_face(edges1[i]->twin->loop, faces);
+
+        loops.Remove(edges1[i]->twin->loop);
+        delete edges1[i]->twin->loop;
+    }
+
+    for (auto e : del_edges) {
+        edges.Remove(e);
+        delete e;
+    }
+}
+
+void rm_loop(he::loop3* loop, he::DoublyLinkedList<he::loop3>& loops, 
+             he::DoublyLinkedList<he::edge3>& edges,
+             std::vector<he::Polyhedron::Face>& faces)
+{
+    rm_face(loop, faces);
+
+    auto curr_edge = loop->edge;
+    auto first_edge = curr_edge;
+    do {
+        assert(curr_edge->twin->twin == curr_edge);
+        curr_edge->twin->twin = nullptr;
+
+        edges.Remove(curr_edge->twin);
+        delete curr_edge->twin;
+
+        edges.Remove(curr_edge);
+        auto next_edge = curr_edge->next;
+        delete curr_edge;
+
+        curr_edge = next_edge;
+    } while (curr_edge != first_edge);
+
+    loops.Remove(loop);
+    delete loop;
 }
 
 }
@@ -751,6 +850,78 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
     assert(GetNoTwinEdgesNum(m_edges) == 0);
 
     m_aabb = CalcAABB(m_verts);
+
+    return true;
+}
+
+bool Polyhedron::Fork(const sm::Plane& plane, std::vector<he::loop3*>& out_seam)
+{
+    auto seam = IntersectWithPlane(plane, m_verts, m_edges, m_loops,
+        m_next_vert_id, m_next_edge_id, m_next_loop_id, m_faces);
+    if (seam.empty()) {
+        return false;
+    }
+
+    // clone middle pos
+    for (auto edge : seam)
+    {
+        vert3* new_vert = new vert3(edge->vert->position, m_next_vert_id++);
+        edge->vert = new_vert;
+        edge->prev->twin->vert = new_vert;
+        m_verts.Append(new_vert);
+    }
+
+    auto seam2face = [&](const std::vector<edge3*>& edges) -> loop3*
+    {
+        auto new_loop = new loop3(m_next_loop_id++);
+        m_loops.Append(new_loop);
+        m_faces.emplace_back(new_loop);
+
+        std::vector<edge3*> new_edges;
+        new_edges.reserve(edges.size());
+        for (int i = 0, n = edges.size(); i < n; ++i)
+        {
+            edge3* new_edge = new edge3(edges[(i + 1) % n]->vert, new_loop, m_next_edge_id++);
+
+            edge_del_pair(edges[i]);
+            edge_make_pair(new_edge, edges[i]);
+            new_edges.push_back(new_edge);
+            m_edges.Append(new_edge);
+        }
+
+        if (new_edges.size() > 1) {
+            for (int i = 0, n = new_edges.size(); i < n; ++i) {
+                new_edges[i]->Connect(new_edges[(i - 1 + n) % n]);
+            }
+        }
+
+        new_loop->edge = new_edges[0];
+
+        return new_loop;
+    };
+
+    std::vector<edge3*> twin_seam;
+    for (auto& edge : seam) {
+        twin_seam.push_back(edge->twin);
+    }
+
+    auto cover = seam2face(seam);
+    auto cover2 = seam2face(twin_seam);
+    out_seam.push_back(cover);
+    out_seam.push_back(cover2);
+    
+    return true;
+}
+
+bool Polyhedron::Join(const std::vector<he::loop3*>& seam)
+{
+    if (seam.size() != 2) {
+        return false;
+    }
+
+    sew_seam(seam[0], seam[1], m_loops, m_edges, m_verts, m_faces);
+    rm_loop(seam[0], m_loops, m_edges, m_faces);
+    rm_loop(seam[1], m_loops, m_edges, m_faces);
 
     return true;
 }
