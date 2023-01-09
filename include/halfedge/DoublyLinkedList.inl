@@ -91,6 +91,43 @@ void DoublyLinkedList<T>::Clear()
 }
 
 template <typename T>
+DoublyLinkedList<T>&
+DoublyLinkedList<T>::Connect(DoublyLinkedList& list)
+{
+    if (!list.m_head) {
+        return *this;
+    }
+
+    if (m_head == nullptr)
+    {
+        assert(m_size == 0);
+        m_head = list.m_head;
+        m_size = list.m_size;
+    }
+    else
+    {
+        auto ori_begin = m_head;
+        auto ori_end   = m_head->linked_prev;
+        auto new_begin = list.m_head;
+        auto new_end   = list.m_head->linked_prev;
+
+        ori_begin->linked_prev = new_end;
+        new_end->linked_next   = ori_begin;
+        ori_end->linked_next   = new_begin;
+        new_begin->linked_prev = ori_end;
+
+        m_size += list.m_size;
+    }
+
+    list.m_head = nullptr;
+    list.m_size = 0;
+
+    assert(Check());
+
+    return *this;
+}
+
+template <typename T>
 bool DoublyLinkedList<T>::Check()
 {
     return CheckLinks() && CheckSize();

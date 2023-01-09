@@ -5,6 +5,7 @@
 
 #include <set>
 #include <map>
+#include <iterator>
 
 namespace
 {
@@ -725,6 +726,18 @@ void sew_seam(const he::loop3* cover, const he::loop3* cover2,
     assert(edges0.size() == edges1.size());
     for (int i = 0, n = edges0.size(); i < n; ++i)
     {
+        // n1    p1
+        // ^     |
+        // |     |
+        // |     V
+        // <-----o
+        // 
+        // o----->
+        // ^     |
+        // |     |
+        // |     V
+        // p0    n0
+
         auto p0 = edges0[i]->twin->prev->vert->position;
         auto n0 = edges0[i]->twin->next->vert->position;
         auto p1 = edges1[i]->twin->prev->vert->position;
@@ -784,6 +797,83 @@ void rm_loop(he::loop3* loop, he::DoublyLinkedList<he::loop3>& loops,
 
     loops.Remove(loop);
     delete loop;
+}
+
+void separate(he::Polyhedron* poly, const sm::Plane& plane, 
+              he::DoublyLinkedList<he::vert3>& new_verts,
+              he::DoublyLinkedList<he::edge3>& new_edges,
+              he::DoublyLinkedList<he::loop3>& new_loops,
+              std::vector<he::Polyhedron::Face>& new_faces)
+{
+    std::set<he::vert3*> verts_up;
+    he::edge3* first = poly->GetEdges().Head();
+    he::edge3* e = first;
+    do {
+        auto os = he::Utility::CalcPointPlaneStatus(plane, e->vert->position);
+        switch (os)
+        {
+        case PointStatus::Above:
+            verts_up.insert(e->vert);
+            break;
+        case PointStatus::Inside:
+            if (he::Utility::CalcPointPlaneStatus(plane, e->next->vert->position) == PointStatus::Above) {
+                verts_up.insert(e->vert);
+            }
+            break;
+        }
+
+        e = e->linked_next;
+    } while (e != first);
+
+    auto& ori_verts = const_cast<he::DoublyLinkedList<he::vert3>&>(poly->GetVerts());
+    he::vert3* first_v = ori_verts.Head();
+    he::vert3* v = first_v;
+    do {
+        if (verts_up.find(v) != verts_up.end()) {
+            v = v->linked_next;
+        } else {
+            auto next = ori_verts.Remove(v);
+            new_verts.Append(v);
+            v = next;
+        }
+    } while (v != first_v);
+
+    auto& ori_edges = const_cast<he::DoublyLinkedList<he::edge3>&>(poly->GetEdges());
+    he::edge3* first_e = ori_edges.Head();
+    e = first_e;
+    do {
+        if (verts_up.find(e->vert) != verts_up.end()) {
+            e = e->linked_next;
+        } else {
+            auto next = ori_edges.Remove(e);
+            new_edges.Append(e);
+            e = next;
+        }
+    } while (e != first_e);
+
+    auto& ori_loops = const_cast<he::DoublyLinkedList<he::loop3>&>(poly->GetLoops());
+    he::loop3* first_l = ori_loops.Head();
+    auto l = first_l;
+    do {
+        if (verts_up.find(l->edge->vert) != verts_up.end()) {
+            l = l->linked_next;
+        } else {
+            auto next = ori_loops.Remove(l);
+            new_loops.Append(l);
+            l = next;
+        }
+    } while (l != first_l);
+
+    auto& ori_faces = const_cast<std::vector<he::Polyhedron::Face>&>(poly->GetFaces());
+    for (auto itr = ori_faces.begin(); itr != ori_faces.end(); )
+    {
+        if (verts_up.find(itr->border->edge->vert) != verts_up.end()) {
+            ++itr;
+        } else {
+            new_faces.push_back(*itr);
+            itr = ori_faces.erase(itr);
+        }
+    }
 }
 
 }
@@ -854,7 +944,7 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
     return true;
 }
 
-bool Polyhedron::Fork(const sm::Plane& plane, std::vector<he::loop3*>& out_seam)
+std::shared_ptr<Polyhedron> Polyhedron::Fork(const sm::Plane& plane, std::vector<he::loop3*>& out_seam)
 {
     auto seam = IntersectWithPlane(plane, m_verts, m_edges, m_loops,
         m_next_vert_id, m_next_edge_id, m_next_loop_id, m_faces);
@@ -909,19 +999,47 @@ bool Polyhedron::Fork(const sm::Plane& plane, std::vector<he::loop3*>& out_seam)
     auto cover2 = seam2face(twin_seam);
     out_seam.push_back(cover);
     out_seam.push_back(cover2);
-    
-    return true;
+
+    auto ret = std::make_shared<Polyhedron>();
+    separate(this, plane, ret->m_verts, ret->m_edges, ret->m_loops, ret->m_faces);
+    UpdateAABB();
+    ret->UpdateAABB();
+
+    return ret;
 }
 
-bool Polyhedron::Join(const std::vector<he::loop3*>& seam)
+bool Polyhedron::Join(const std::vector<he::loop3*>& seam, const std::shared_ptr<Polyhedron>& poly)
 {
     if (seam.size() != 2) {
         return false;
     }
 
+    m_verts.Connect(poly->m_verts);
+    m_edges.Connect(poly->m_edges);
+    m_loops.Connect(poly->m_loops);
+
+    std::copy(poly->m_faces.begin(), poly->m_faces.end(), std::back_inserter(m_faces));
+    poly->m_faces.clear();
+
     sew_seam(seam[0], seam[1], m_loops, m_edges, m_verts, m_faces);
     rm_loop(seam[0], m_loops, m_edges, m_faces);
     rm_loop(seam[1], m_loops, m_edges, m_faces);
+
+    //// offset
+    //std::set<he::vert3*> verts_up;
+    //he::edge3* first = m_edges.Head();
+    //he::edge3* e = first;
+    //do {
+    //    if (e->vert->position.y > 0) {
+    //        verts_up.insert(e->vert);
+    //    } else if (e->vert->position.y == 0 && e->next && e->next->vert->position.y > 0) {
+    //        verts_up.insert(e->vert);
+    //    }
+    //    e = e->linked_next;
+    //} while (e != first);
+    //for (auto v : verts_up) {
+    //    v->position.x += 2.0f;
+    //}
 
     return true;
 }

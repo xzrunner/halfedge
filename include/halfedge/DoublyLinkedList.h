@@ -20,6 +20,8 @@ public:
 
     void Clear();
 
+    DoublyLinkedList& Connect(DoublyLinkedList& list);
+
 private:
     bool Check();
     bool CheckLinks();
