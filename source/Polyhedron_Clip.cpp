@@ -944,7 +944,7 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
     return true;
 }
 
-std::shared_ptr<Polyhedron> Polyhedron::Fork(const sm::Plane& plane, std::vector<he::loop3*>& out_seam)
+std::shared_ptr<Polyhedron> Polyhedron::Fork(const sm::Plane& plane)
 {
     auto seam = IntersectWithPlane(plane, m_verts, m_edges, m_loops,
         m_next_vert_id, m_next_edge_id, m_next_loop_id, m_faces);
@@ -997,8 +997,8 @@ std::shared_ptr<Polyhedron> Polyhedron::Fork(const sm::Plane& plane, std::vector
 
     auto cover = seam2face(seam);
     auto cover2 = seam2face(twin_seam);
-    out_seam.push_back(cover);
-    out_seam.push_back(cover2);
+    //out_seam.push_back(cover);
+    //out_seam.push_back(cover2);
 
     auto ret = std::make_shared<Polyhedron>();
     separate(this, plane, ret->m_verts, ret->m_edges, ret->m_loops, ret->m_faces);
@@ -1008,11 +1008,11 @@ std::shared_ptr<Polyhedron> Polyhedron::Fork(const sm::Plane& plane, std::vector
     return ret;
 }
 
-bool Polyhedron::Join(const std::vector<he::loop3*>& seam, const std::shared_ptr<Polyhedron>& poly)
+bool Polyhedron::Join(const std::shared_ptr<Polyhedron>& poly)
 {
-    if (seam.size() != 2) {
-        return false;
-    }
+    // todo: check seams valid
+    auto seam0 = m_loops.Head()->linked_prev;
+    auto seam1 = poly->GetLoops().Head()->linked_prev;
 
     m_verts.Connect(poly->m_verts);
     m_edges.Connect(poly->m_edges);
@@ -1021,9 +1021,9 @@ bool Polyhedron::Join(const std::vector<he::loop3*>& seam, const std::shared_ptr
     std::copy(poly->m_faces.begin(), poly->m_faces.end(), std::back_inserter(m_faces));
     poly->m_faces.clear();
 
-    sew_seam(seam[0], seam[1], m_loops, m_edges, m_verts, m_faces);
-    rm_loop(seam[0], m_loops, m_edges, m_faces);
-    rm_loop(seam[1], m_loops, m_edges, m_faces);
+    sew_seam(seam0, seam1, m_loops, m_edges, m_verts, m_faces);
+    rm_loop(seam0, m_loops, m_edges, m_faces);
+    rm_loop(seam1, m_loops, m_edges, m_faces);
 
     //// offset
     //std::set<he::vert3*> verts_up;
