@@ -737,14 +737,10 @@ void sew_seam(const he::loop3* cover, const he::loop3* cover2,
         // |     |
         // |     V
         // p0    n0
-
         auto p0 = edges0[i]->twin->prev->vert->position;
         auto n0 = edges0[i]->twin->next->vert->position;
         auto p1 = edges1[i]->twin->prev->vert->position;
         auto n1 = edges1[i]->twin->next->vert->position;
-
-        assert(p0.x == n1.x && p0.z == n1.z
-            && p1.x == n0.x && p1.z == n0.z);
 
         edges0[i]->twin->next->vert->position = edges1[i]->twin->prev->vert->position;
         assert(edges1[i]->twin->prev->prev->twin->vert == edges1[i]->twin->prev->vert);
@@ -826,9 +822,9 @@ void separate(he::Polyhedron* poly, const sm::Plane& plane,
     } while (e != first);
 
     auto& ori_verts = const_cast<he::DoublyLinkedList<he::vert3>&>(poly->GetVerts());
-    he::vert3* first_v = ori_verts.Head();
-    he::vert3* v = first_v;
-    do {
+    he::vert3* v = ori_verts.Head();
+    for (int i = 0, n = ori_verts.Size(); i < n; ++i)
+    {
         if (verts_up.find(v) != verts_up.end()) {
             v = v->linked_next;
         } else {
@@ -836,12 +832,12 @@ void separate(he::Polyhedron* poly, const sm::Plane& plane,
             new_verts.Append(v);
             v = next;
         }
-    } while (v != first_v);
+    }
 
     auto& ori_edges = const_cast<he::DoublyLinkedList<he::edge3>&>(poly->GetEdges());
-    he::edge3* first_e = ori_edges.Head();
-    e = first_e;
-    do {
+    e = ori_edges.Head();
+    for (int i = 0, n = ori_edges.Size(); i < n; ++i)
+    {
         if (verts_up.find(e->vert) != verts_up.end()) {
             e = e->linked_next;
         } else {
@@ -849,12 +845,12 @@ void separate(he::Polyhedron* poly, const sm::Plane& plane,
             new_edges.Append(e);
             e = next;
         }
-    } while (e != first_e);
+    }
 
     auto& ori_loops = const_cast<he::DoublyLinkedList<he::loop3>&>(poly->GetLoops());
-    he::loop3* first_l = ori_loops.Head();
-    auto l = first_l;
-    do {
+    auto l = ori_loops.Head();
+    for (int i = 0, n = ori_loops.Size(); i < n; ++i)
+    {
         if (verts_up.find(l->edge->vert) != verts_up.end()) {
             l = l->linked_next;
         } else {
@@ -862,7 +858,7 @@ void separate(he::Polyhedron* poly, const sm::Plane& plane,
             new_loops.Append(l);
             l = next;
         }
-    } while (l != first_l);
+    }
 
     auto& ori_faces = const_cast<std::vector<he::Polyhedron::Face>&>(poly->GetFaces());
     for (auto itr = ori_faces.begin(); itr != ori_faces.end(); )
