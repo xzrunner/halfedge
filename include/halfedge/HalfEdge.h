@@ -19,6 +19,7 @@ struct Vertex
 	{
     }
 
+    uint64_t id;
     TopoID ids;
 
 	T position;
@@ -48,6 +49,7 @@ struct Edge
 
     Edge<T>* Connect(Edge<T>* next);
 
+    uint64_t id;
     TopoID ids;
 
     Vertex<T>* vert = nullptr;     // vertex at the begin of the half-edge
@@ -72,6 +74,7 @@ struct Loop
     {
     }
 
+    uint64_t id;
     TopoID ids;
 
     // one of the half-edges bordering the loop

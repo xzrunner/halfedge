@@ -92,6 +92,7 @@ public:
 
     bool IsContain(const sm::vec3& pos) const;
 
+    // build
     class EdgeCmp
     {
     public:
@@ -102,6 +103,21 @@ public:
                 (e0.first == e1.first && e0.second < e1.second);
         }
     }; // EdgeCmp
+
+    class LoopBuilder
+    {
+    public:
+        void Add(const std::pair<size_t, size_t>& pos, edge3* edge) {
+            map2edge.insert({ pos, edge });
+        }
+        void Build();
+
+    private:
+        std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp> map2edge;
+    };
+
+    vert3* AddVertex(const sm::vec3& pos);
+    loop3* AddFace(const std::vector<size_t>& loop_indices, const std::vector<vert3*>& v_array, LoopBuilder& builder);
 
 private:
     void OffsetTopoID(size_t v_off, size_t e_off, size_t f_off);
@@ -114,8 +130,7 @@ private:
     void BuildFromFaces(const std::vector<Face>& faces);
 
     void BuildVertices(const std::vector<in_vert>& verts, std::vector<vert3*>& v_array);
-    loop3* BuildLoop(TopoID id, const std::vector<size_t>& loop, const std::vector<vert3*>& v_array,
-        std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp>& map2edge);
+    loop3* BuildLoop(TopoID id, const std::vector<size_t>& loop, const std::vector<vert3*>& v_array, LoopBuilder& builder);
 
     static std::vector<in_vert> DumpVertices(const DoublyLinkedList<vert3>& verts, std::map<vert3*, size_t>& vert2idx);
     static in_loop DumpLoop(const loop3& loop, const std::map<vert3*, size_t>& vert2idx);

@@ -1,27 +1,30 @@
 #include "halfedge/Polyhedron.h"
 
-namespace
-{
-
-void make_edge_pair(std::map<std::pair<size_t, size_t>, he::edge3*, he::Polyhedron::EdgeCmp>& map2edge)
-{
-    for (auto& itr : map2edge)
-    {
-        if (itr.second->twin) {
-            continue;
-        }
-
-        auto itr_twin = map2edge.find({ itr.first.second, itr.first.first });
-        if (itr_twin != map2edge.end()) {
-            he::edge_make_pair(itr.second, itr_twin->second);
-        }
-    }
-}
-
-}
-
 namespace he
 {
+
+vert3* Polyhedron::AddVertex(const sm::vec3& pos)
+{
+    m_aabb.Combine(pos);
+
+    auto vert = new he::vert3(pos, he::TopoID());
+    m_verts.Append(vert);
+
+    return vert;
+}
+
+loop3* Polyhedron::AddFace(const std::vector<size_t>& loop_indices, const std::vector<vert3*>& v_array, LoopBuilder& builder)
+{
+    he::Polyhedron::Face face;
+
+    auto loop = BuildLoop(he::TopoID(), loop_indices, v_array, builder);
+    m_loops.Append(loop);
+    face.border = loop;
+    
+    m_faces.push_back(face);
+
+    return loop;
+}
 
 void Polyhedron::BuildFromCube(const sm::cube& aabb)
 {
@@ -158,7 +161,7 @@ void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
     std::vector<vert3*> v_array;
     BuildVertices(verts, v_array);
 
-    std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp> map2edge;
+    LoopBuilder builder;
 	for (auto& face : faces)
 	{
         Face dst_f;
@@ -167,7 +170,7 @@ void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
         auto& border = std::get<1>(face);
         auto& holes  = std::get<2>(face);
 
-        auto border_loop = BuildLoop(id, border, v_array, map2edge);
+        auto border_loop = BuildLoop(id, border, v_array, builder);
         assert(border_loop);
         m_loops.Append(border_loop);
         dst_f.border = border_loop;
@@ -175,7 +178,7 @@ void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
         dst_f.holes.reserve(holes.size());
         for (auto& hole : holes)
         {
-            auto hole_loop = BuildLoop(id, hole, v_array, map2edge);
+            auto hole_loop = BuildLoop(id, hole, v_array, builder);
             assert(hole_loop);
             m_loops.Append(hole_loop);
             dst_f.holes.push_back(hole_loop);
@@ -184,7 +187,7 @@ void Polyhedron::BuildFromFaces(const std::vector<in_vert>& verts,
         m_faces.push_back(dst_f);
 	}
 
-    make_edge_pair(map2edge);
+    builder.Build();
 }
 
 void Polyhedron::BuildFromFaces(const std::vector<Face>& faces)
@@ -280,8 +283,7 @@ void Polyhedron::BuildVertices(const std::vector<in_vert>& verts, std::vector<ve
     }
 }
 
-loop3* Polyhedron::BuildLoop(TopoID id, const std::vector<size_t>& loop, const std::vector<vert3*>& v_array,
-                             std::map<std::pair<size_t, size_t>, edge3*, EdgeCmp>& map2edge)
+loop3* Polyhedron::BuildLoop(TopoID id, const std::vector<size_t>& loop, const std::vector<vert3*>& v_array, LoopBuilder& builder)
 {
     if (loop.size() <= 2) {
         return nullptr;
@@ -323,13 +325,32 @@ loop3* Polyhedron::BuildLoop(TopoID id, const std::vector<size_t>& loop, const s
 		}
 		last = edge;
 
-        map2edge.insert({ { curr_pos, next_pos }, edge });
+        builder.Add({ curr_pos, next_pos }, edge);
 	}
 	last->Connect(first);
 
 	ret->edge = first;
 
     return ret;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// class Polyhedron::LoopBuilder
+//////////////////////////////////////////////////////////////////////////
+
+void Polyhedron::LoopBuilder::Build()
+{
+    for (auto& itr : map2edge)
+    {
+        if (itr.second->twin) {
+            continue;
+        }
+
+        auto itr_twin = map2edge.find({ itr.first.second, itr.first.first });
+        if (itr_twin != map2edge.end()) {
+            he::edge_make_pair(itr.second, itr_twin->second);
+        }
+    }
 }
 
 }
