@@ -115,10 +115,14 @@ he::edge3* SplitEdgeByPlane(he::edge3* edge, const sm::Plane& plane,
 
     auto pos = s_pos + (e_pos - s_pos) * dot;
     auto new_vert = new he::vert3(pos, next_vert_id++);
+    new_vert->type = he::EditType::Add;
     verts.Append(new_vert);
     auto new_edge = new he::edge3(new_vert, edge->loop, edge->ids);
+    new_edge->type = he::EditType::Add;
     new_edge->ids.Append(next_edge_id++);
     edges.Append(new_edge);
+
+    edge->type = he::EditType::Mod;
 
     edge->ids.Append(next_edge_id++);
     auto edge_next = edge->next;
@@ -127,7 +131,10 @@ he::edge3* SplitEdgeByPlane(he::edge3* edge, const sm::Plane& plane,
     auto twin_edge = edge->twin;
     if (twin_edge)
     {
+        twin_edge->type = he::EditType::Mod;
+
         auto new_twin_edge = new he::edge3(new_vert, twin_edge->loop, twin_edge->ids);
+        new_twin_edge->type = he::EditType::Add;
         new_twin_edge->ids.Append(next_edge_id++);
         edges.Append(new_twin_edge);
 
@@ -155,7 +162,9 @@ void IntersectWithPlane(he::edge3* old_boundary_first,
 
     auto old_loop = old_boundary_first->loop;
     he::edge3* old_boundary_splitter = new he::edge3(new_boundary_first->vert, old_loop, next_edge_id++);
+    old_boundary_splitter->type = he::EditType::Add;
     he::edge3* new_boundary_splitter = new he::edge3(old_boundary_first->vert, old_loop, next_edge_id++);
+    new_boundary_splitter->type = he::EditType::Add;
 
     he::edge_make_pair(old_boundary_splitter, new_boundary_splitter);
 
@@ -166,6 +175,7 @@ void IntersectWithPlane(he::edge3* old_boundary_first,
     old_boundary_splitter->Connect(old_boundary_first);
 
     auto new_loop = new he::loop3(new_boundary_first->loop->ids);
+    new_loop->type = he::EditType::Add;
     new_loop->ids.Append(next_loop_id++);
     he::bind_edge_loop(new_loop, new_boundary_first);
 
@@ -561,6 +571,7 @@ void DeleteInvalid(std::vector<he::Polyhedron::Face>& faces)
         }
 
         if (!valid) {
+            itr->border->type = he::EditType::Del;
             itr = faces.erase(itr);
         } else {
             itr++;
@@ -905,6 +916,7 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
 //        assert(!seam.front()->twin);
 
         auto new_loop = new loop3(m_next_loop_id++);
+        new_loop->type = EditType::Add;
         m_loops.Append(new_loop);
         m_faces.emplace_back(new_loop);
 
@@ -913,6 +925,7 @@ bool Polyhedron::Clip(const sm::Plane& plane, KeepType keep, bool seam_face)
         for (int i = 0, n = seam.size(); i < n; ++i)
         {
             edge3* new_edge = new edge3(seam[(i + 1) % n]->vert, new_loop, m_next_edge_id++);
+            new_edge->type = EditType::Add;
 
             edge_del_pair(seam[i]);
             edge_make_pair(new_edge, seam[i]);
@@ -952,6 +965,7 @@ std::shared_ptr<Polyhedron> Polyhedron::Fork(const sm::Plane& plane)
     for (auto edge : seam)
     {
         vert3* new_vert = new vert3(edge->vert->position, m_next_vert_id++);
+        new_vert->type = EditType::Add;
         edge->vert = new_vert;
         edge->prev->twin->vert = new_vert;
         m_verts.Append(new_vert);
@@ -960,6 +974,7 @@ std::shared_ptr<Polyhedron> Polyhedron::Fork(const sm::Plane& plane)
     auto seam2face = [&](const std::vector<edge3*>& edges) -> loop3*
     {
         auto new_loop = new loop3(m_next_loop_id++);
+        new_loop->type = EditType::Add;
         m_loops.Append(new_loop);
         m_faces.emplace_back(new_loop);
 
@@ -968,6 +983,7 @@ std::shared_ptr<Polyhedron> Polyhedron::Fork(const sm::Plane& plane)
         for (int i = 0, n = edges.size(); i < n; ++i)
         {
             edge3* new_edge = new edge3(edges[(i + 1) % n]->vert, new_loop, m_next_edge_id++);
+            new_edge->type = EditType::Add;
 
             edge_del_pair(edges[i]);
             edge_make_pair(new_edge, edges[i]);

@@ -7,6 +7,14 @@
 namespace he
 {
 
+enum class EditType
+{
+    Unmod,
+    Add,
+    Del,
+    Mod,
+};
+
 template<typename T>
 struct Edge;
 
@@ -31,6 +39,8 @@ struct Vertex
     Vertex<T>* linked_prev = nullptr;
     Vertex<T>* linked_next = nullptr;
 
+    EditType type = EditType::Unmod;
+
 }; // Vertex
 
 template<typename T>
@@ -49,7 +59,7 @@ struct Edge
 
     Edge<T>* Connect(Edge<T>* next);
 
-    uint64_t id;
+    //uint64_t id;
     TopoID ids;
 
     Vertex<T>* vert = nullptr;     // vertex at the begin of the half-edge
@@ -63,6 +73,8 @@ struct Edge
     // double linked list
     Edge<T>* linked_prev = nullptr;
     Edge<T>* linked_next = nullptr;
+
+    EditType type = EditType::Unmod;
 
 }; // Edge
 
@@ -83,6 +95,8 @@ struct Loop
     // double linked list
     Loop<T>* linked_prev = nullptr;
     Loop<T>* linked_next = nullptr;
+
+    EditType type = EditType::Unmod;
 
 }; // Loop
 
