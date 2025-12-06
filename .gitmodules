@@ -1,0 +1,3 @@
+[submodule "external/sm"]
+	path = external/sm
+	url = git@github.com:xzrunner/sm.git
