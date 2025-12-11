@@ -60,7 +60,7 @@ set(ALL_FILES
 ################################################################################
 # Target
 ################################################################################
-include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${CMAKE_SOURCE_DIR}/external/sm)
 
 add_library(${PROJECT_NAME} STATIC ${ALL_FILES})
+
+target_include_directories(${PROJECT_NAME} PRIVATE include external/sm)
